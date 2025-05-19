@@ -1,0 +1,44 @@
+
+services:
+  backend:
+    container_name: tournament-backend
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: build
+
+    volumes:
+      - .:/app
+
+    ports:
+      - ${APP_PORT}:${APP_PORT}
+
+    command: yarn run start:dev
+  
+  cup-database:
+    container_name: tournament-db
+
+    image: postgres:17
+
+    environment:
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: ${DATABASE_NAME}
+      PGDATA: db-data:/var/lib/postgresql/data
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  adminer:
+    container_name: adminer
+
+    image: adminer
+
+    ports:
+      - "8080:8080"
+
+volumes:
+  db-data:
