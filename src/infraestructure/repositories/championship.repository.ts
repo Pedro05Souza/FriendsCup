@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { ChampionshipRepository } from "../../domain/interfaces/championship.interface";
+import { ChampionshipRepository, CreateChampionshipParams } from "../../domain/interfaces/championship.interface";
 import { PrismaClientService } from "src/application/services/prisma-client";
 
 
@@ -8,11 +8,16 @@ import { PrismaClientService } from "src/application/services/prisma-client";
 export class ChampionshipRepositoryImpl implements ChampionshipRepository {
     constructor(private readonly _prismaService: PrismaClientService) {}
     
-    async create(title: string): Promise<void> {
+    async create(params: CreateChampionshipParams): Promise<void> {
         await this._prismaService.prisma.championship.create({
             data: {
-                title,
+                title: params.title,
+                createdAt: params.createdAt.toJSDate(),
             },
+            select: {
+                matches: true,
+                players: true,
+            }
         });
     }
 }

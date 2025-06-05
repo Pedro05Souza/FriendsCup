@@ -8,12 +8,12 @@ generator client {
 }
 
 model Player {
-    id           String         @id @default(uuid())
-    name         String
-    rating       Float
-    GoalPerGame   Float
-    Championship Championship[]
-    Match        Match[]
+    id            String         @id @default(uuid())
+    name          String
+    rating        Float
+    goalPerGame   Float          @map("goal_per_game")
+    championships Championship[]
+    Match         Match[]
 
     @@map("player")
 }
@@ -23,7 +23,7 @@ model MatchScore {
     match        Match? @relation(fields: [matchId], references: [id])
     matchId      String @unique @map("match_id")
     score        Int
-    penaltyScore Int?
+    penaltyScore Int?   @map("penalty_score")
 
     @@map("match_score")
 }
@@ -31,9 +31,9 @@ model MatchScore {
 model Championship {
     id        String   @id @default(uuid())
     title     String
-    createdAt DateTime
-    Match     Match[]
-    Player    Player[]
+    createdAt DateTime @map("created_at")
+    matches   Match[]
+    players   Player[]
 
     @@map("championship")
 }

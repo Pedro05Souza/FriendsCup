@@ -1,5 +1,12 @@
+import { DateTime } from 'luxon'
+
+export interface CreateChampionshipParams {
+    title: string;
+    createdAt: DateTime;
+}
+
 export interface ChampionshipRepository {
-    create(title: string): Promise<void>;
+    create(params: CreateChampionshipParams): Promise<void>;
 }
 
 export const championshipRepositoryToken = Symbol('ChampionshipRepository');
