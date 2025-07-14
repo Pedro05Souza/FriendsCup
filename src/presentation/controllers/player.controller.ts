@@ -1,10 +1,20 @@
-import { Body, Controller, Delete, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { CreatePlayerDto } from '../../application/dtos/create-player.dto';
 import { UpdatePlayerDto } from 'src/application/dtos/update-player.dto';
 import { CreatePlayerUsecase } from 'src/application/usecases/create-player.usecase';
 import { PlayerDto } from 'src/application/dtos/player.dto';
 import { DeletePlayerUsecase } from 'src/application/usecases/delete-player.usecase';
 import { UpdatePlayerUsecase } from 'src/application/usecases/update-player.usecase';
+import { ListPlayersUsecase } from 'src/application/usecases/list-players.usecase';
+import { ListPlayerResponse } from 'src/domain/interfaces/player.interface';
 
 @Controller('players')
 export class PlayerController {
@@ -12,6 +22,7 @@ export class PlayerController {
     private readonly _createPlayerUsecase: CreatePlayerUsecase,
     private readonly _deletePlayerUsecase: DeletePlayerUsecase,
     private readonly _updatePlayerUsecase: UpdatePlayerUsecase,
+    private readonly _listPlayersUsecase: ListPlayersUsecase,
   ) {}
 
   @Post()
@@ -30,5 +41,10 @@ export class PlayerController {
     @Body() updatePlayerDto: UpdatePlayerDto,
   ): Promise<PlayerDto> {
     return this._updatePlayerUsecase.updatePlayer(id, updatePlayerDto);
+  }
+
+  @Get()
+  async list(@Query('page') page: number): Promise<ListPlayerResponse> {
+    return this._listPlayersUsecase.listPlayers(page);
   }
 }

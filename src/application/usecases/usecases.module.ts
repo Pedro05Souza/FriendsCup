@@ -5,6 +5,7 @@ import { RepositoriesModule } from 'src/infraestructure/repositories/repositorie
 import { DeletePlayerUsecase } from './delete-player.usecase';
 import { UpdatePlayerUsecase } from './update-player.usecase';
 import { CreateChampionshipUsecase } from './create-championship.usecase';
+import { ListPlayersUsecase } from './list-players.usecase';
 
 @Module({
   controllers: [],
@@ -14,12 +15,14 @@ import { CreateChampionshipUsecase } from './create-championship.usecase';
     DeletePlayerUsecase,
     UpdatePlayerUsecase,
     CreateChampionshipUsecase,
+    ListPlayersUsecase,
   ],
   exports: [
     CreatePlayerUsecase,
     DeletePlayerUsecase,
     UpdatePlayerUsecase,
     CreateChampionshipUsecase,
+    ListPlayersUsecase,
   ],
   imports: [RepositoriesModule],
 })

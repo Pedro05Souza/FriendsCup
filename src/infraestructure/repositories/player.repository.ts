@@ -5,7 +5,10 @@ import {
 } from 'src/domain/entities/player.entity';
 import { PrismaClientService } from 'src/application/services/prisma-client';
 import { playerModelToEntity } from './mappers/player.mapper';
-import { PlayerRepository } from '../../domain/interfaces/player.interface';
+import {
+  ListPlayerResponse,
+  PlayerRepository,
+} from '../../domain/interfaces/player.interface';
 
 @Injectable()
 export class PlayerRepositoryImpl implements PlayerRepository {
@@ -43,5 +46,20 @@ export class PlayerRepositoryImpl implements PlayerRepository {
     await this._prismaService.prisma.player.delete({
       where: { id },
     });
+  }
+
+  async listPlayers(page: number, limit: number): Promise<ListPlayerResponse> {
+    const playersDb = await this._prismaService.prisma.player.findMany({
+      skip: (page - 1) * limit,
+      take: limit + 1,
+    });
+
+    const strippedPlayers = playersDb.slice(0, limit);
+    const hasMore = playersDb.length > limit;
+
+    return {
+      players: strippedPlayers.map(playerModelToEntity),
+      hasMore,
+    };
   }
 }
