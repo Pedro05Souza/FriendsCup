@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { NewPlayerEntity, PlayerEntity } from 'src/domain/entities/player.entity';
+import {
+  NewPlayerEntity,
+  PlayerEntity,
+} from 'src/domain/entities/player.entity';
 import { PrismaClientService } from 'src/application/services/prisma-client';
 import { playerModelToEntity } from './mappers/player.mapper';
 import { PlayerRepository } from '../../domain/interfaces/player.interface';

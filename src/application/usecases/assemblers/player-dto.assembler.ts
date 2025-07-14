@@ -14,10 +14,13 @@ export class PlayerDtoAssembler {
       mentality: playerEntity.mentality,
       goalsScored: playerEntity.goalsScored,
       goalsConceded: playerEntity.goalsConceded,
-      overrallRating: Math.round((playerEntity.intelligence +
-        playerEntity.defense +
-        playerEntity.attack +
-        playerEntity.mentality) / 4)
+      overrallRating: Math.round(
+        (playerEntity.intelligence +
+          playerEntity.defense +
+          playerEntity.attack +
+          playerEntity.mentality) /
+          4,
+      ),
     };
   }
 }

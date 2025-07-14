@@ -9,7 +9,7 @@ export class PrismaClientService implements OnModuleInit {
     this.prisma = new PrismaClient();
   }
 
-  async onModuleInit() {
+  async onModuleInit(): Promise<void> {
     await this.prisma.$connect();
   }
 }

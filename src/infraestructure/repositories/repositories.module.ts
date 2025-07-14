@@ -16,8 +16,8 @@ import { ChampionshipRepositoryImpl } from './championship.repository';
     {
       provide: championshipRepositoryToken,
       useClass: ChampionshipRepositoryImpl,
-    }
+    },
   ],
-  exports: [playerRepositoryToken],
+  exports: [playerRepositoryToken, championshipRepositoryToken],
 })
 export class RepositoriesModule {}

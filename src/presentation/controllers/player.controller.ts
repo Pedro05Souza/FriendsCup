@@ -11,17 +11,17 @@ export class PlayerController {
   constructor(
     private readonly _createPlayerUsecase: CreatePlayerUsecase,
     private readonly _deletePlayerUsecase: DeletePlayerUsecase,
-    private readonly _updatePlayerUsecase: UpdatePlayerUsecase
+    private readonly _updatePlayerUsecase: UpdatePlayerUsecase,
   ) {}
 
   @Post()
   async create(@Body() createPlayerDto: CreatePlayerDto): Promise<PlayerDto> {
-    return await this._createPlayerUsecase.createPlayer(createPlayerDto);
+    return this._createPlayerUsecase.createPlayer(createPlayerDto);
   }
 
   @Delete('/:id')
   async delete(@Param('id') id: string): Promise<void> {
-    return await this._deletePlayerUsecase.deletePlayer(id);
+    return this._deletePlayerUsecase.deletePlayer(id);
   }
 
   @Post('/:id')
@@ -29,6 +29,6 @@ export class PlayerController {
     @Param('id') id: string,
     @Body() updatePlayerDto: UpdatePlayerDto,
   ): Promise<PlayerDto> {
-    return await this._updatePlayerUsecase.updatePlayer(id, updatePlayerDto);
+    return this._updatePlayerUsecase.updatePlayer(id, updatePlayerDto);
   }
 }

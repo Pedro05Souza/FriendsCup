@@ -1,4 +1,7 @@
-import { NewPlayerEntity, PlayerEntity } from 'src/domain/entities/player.entity';
+import type {
+  NewPlayerEntity,
+  PlayerEntity,
+} from 'src/domain/entities/player.entity';
 
 export interface PlayerRepository {
   create(newPlayer: NewPlayerEntity): Promise<PlayerEntity>;

@@ -1,5 +1,5 @@
-import { Player } from '@prisma/client';
-import { PlayerEntity } from 'src/domain/entities/player.entity';
+import type { Player } from '@prisma/client';
+import type { PlayerEntity } from 'src/domain/entities/player.entity';
 
 export function playerModelToEntity(dbPlayer: Player): PlayerEntity {
   return {

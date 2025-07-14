@@ -13,15 +13,16 @@ export class UpdatePlayerUsecase {
     @Inject(playerRepositoryToken)
     private readonly _playerRepository: PlayerRepository,
     private readonly _playerDtoAssembler: PlayerDtoAssembler,
-  ) { }
+  ) {}
 
-  async updatePlayer(id: string, playerDto: UpdatePlayerDto): Promise<PlayerDto> {
+  async updatePlayer(
+    id: string,
+    playerDto: UpdatePlayerDto,
+  ): Promise<PlayerDto> {
     const existingPlayer = await this._playerRepository.findById(id);
 
     if (existingPlayer === null) {
-      throw new BadRequestException(
-        `Player with id ${id} does not exist.`,
-      );
+      throw new BadRequestException(`Player with id ${id} does not exist.`);
     }
 
     const updatedPlayer = {

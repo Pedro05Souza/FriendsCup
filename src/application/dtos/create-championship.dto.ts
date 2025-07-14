@@ -1,10 +1,12 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
+import { tournamentNameEnum } from './enums';
 
 export const createChampionshipSchema = z.object({
-    title: z.string(),
-    createdAtIso: z.string().datetime(),
+  title: tournamentNameEnum,
+  createdAtIso: z.string().date(),
 });
 
-export class CreateChampionshipDto extends createZodDto(createChampionshipSchema) {
-}
+export class CreateChampionshipDto extends createZodDto(
+  createChampionshipSchema,
+) {}
