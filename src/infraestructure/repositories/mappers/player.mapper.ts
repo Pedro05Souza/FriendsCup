@@ -5,7 +5,11 @@ export function playerModelToEntity(dbPlayer: Player): PlayerEntity {
   return {
     id: dbPlayer.id,
     name: dbPlayer.name,
-    rating: dbPlayer.rating,
-    goalPerGame: 1,
+    intelligence: dbPlayer.intelligence,
+    defense: dbPlayer.defense,
+    attack: dbPlayer.attack,
+    mentality: dbPlayer.mentality,
+    goalsScored: dbPlayer.goalsScored,
+    goalsConceded: dbPlayer.goalsConceded,
   };
 }

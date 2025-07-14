@@ -18,7 +18,10 @@ export class CreatePlayerUsecase {
   async createPlayer(playerDto: CreatePlayerDto): Promise<PlayerDto> {
     const newPlayer = await this._playerRepository.create({
       name: playerDto.name,
-      goalPerGame: 0,
+      intelligence: playerDto.intelligence,
+      defense: playerDto.defense,
+      attack: playerDto.attack,
+      mentality: playerDto.mentality,
     });
 
     return this._playerDtoAssembler.toDto(newPlayer);

@@ -12,8 +12,10 @@ export class PlayerRepositoryImpl implements PlayerRepository {
     const newPlayerDb = await this._prismaService.prisma.player.create({
       data: {
         name: newPlayer.name,
-        rating: 5,
-        GoalPerGame: newPlayer.goalPerGame,
+        defense: newPlayer.defense,
+        attack: newPlayer.attack,
+        mentality: newPlayer.mentality,
+        intelligence: newPlayer.intelligence,
       },
     });
 
