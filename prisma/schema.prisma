@@ -10,10 +10,16 @@ generator client {
 model Player {
     id            String         @id @default(uuid())
     name          String
-    rating        Float
-    goalPerGame   Float          @map("goal_per_game")
+    intelligence  Int
+    defense       Int
+    attack        Int
+    mentality     Int
+    goalsScored   Int            @default(0) @map("goals_scored")
+    goalsConceded Int            @default(0) @map("goals_conceded")
+    createdAt     DateTime       @default(now()) @map("created_at")
     championships Championship[]
-    Match         Match[]
+    match         Match[]
+    groupPlayers  GroupPlayer[]
 
     @@map("player")
 }
@@ -29,11 +35,12 @@ model MatchScore {
 }
 
 model Championship {
-    id        String   @id @default(uuid())
+    id        String              @id @default(uuid())
     title     String
-    createdAt DateTime @map("created_at")
+    createdAt DateTime            @map("created_at")
     matches   Match[]
     players   Player[]
+    groups    ChampionshipGroup[]
 
     @@map("championship")
 }
@@ -48,4 +55,27 @@ model Match {
     matchPhase     String       @map("match_phase")
 
     @@map("match")
+}
+
+model GroupPlayer {
+    id                  String            @id @default(uuid())
+    player              Player            @relation(fields: [playerId], references: [id])
+    playerId            String            @map("player_id")
+    championshipGroup   ChampionshipGroup @relation(fields: [championshipGroupId], references: [id])
+    championshipGroupId String            @map("championship_group_id")
+    points              Int               @default(0)
+    position            Int               @default(0)
+    goalDifference      Int               @default(0) @map("goal_difference")
+
+    @@map("group_player")
+}
+
+model ChampionshipGroup {
+    id             String        @id @default(uuid())
+    championship   Championship  @relation(fields: [championshipId], references: [id])
+    championshipId String        @map("championship_id")
+    groupPlayers   GroupPlayer[]
+    createdAt      DateTime      @default(now()) @map("created_at")
+
+    @@map("championship_group")
 }
