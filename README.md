@@ -1,6 +1,6 @@
 # 🏆 Friends Cup - Tournament Management System
 
-A comprehensive tournament management system built with **NestJS** and **TypeScript** to track matches, championships, and player statistics for friendly competitions.
+A comprehensive tournament management system built with **NestJS** and **TypeScript** to track matches, championships, and player statistics. The goal of this is to preserve the tournament history created and disputed by me and my friends.
 
 ## 📋 Project Overview
 
