@@ -5,6 +5,8 @@ import {
   CreateDuoParams,
 } from '../../domain/interfaces/championship.interface';
 import { PrismaClientService } from 'src/application/services/prisma-client';
+import { mapToRawChampionshipEntity } from './mappers/championship.mapper';
+import { RawChampionshipEntity } from 'src/domain/entities/championship.entity';
 
 @Injectable()
 export class ChampionshipRepositoryImpl implements ChampionshipRepository {
@@ -32,5 +34,18 @@ export class ChampionshipRepositoryImpl implements ChampionshipRepository {
         championshipId: params.championshipId,
       },
     });
+  }
+
+  async findById(id: string): Promise<RawChampionshipEntity | null> {
+    const championship =
+      await this._prismaService.prisma.championship.findUnique({
+        where: { id },
+      });
+
+    if (championship === null) {
+      return null;
+    }
+
+    return mapToRawChampionshipEntity(championship);
   }
 }

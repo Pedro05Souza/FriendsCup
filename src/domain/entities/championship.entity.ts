@@ -1,6 +1,8 @@
+import type { DateTime } from 'luxon';
+
 export interface RawChampionshipEntity {
   id: string;
   title: string;
-  createdAt: Date;
+  createdAt: DateTime;
   isDuo: boolean;
 }

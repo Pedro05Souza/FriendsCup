@@ -1,11 +1,14 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Param, Post } from '@nestjs/common';
 import { CreateChampionshipDto } from 'src/application/dtos/create-championship.dto';
+import { CreateDuoDto } from 'src/application/dtos/create-duo.dto';
 import { CreateChampionshipUsecase } from 'src/application/usecases/create-championship.usecase';
+import { CreateDuoUsecase } from 'src/application/usecases/create-duo-usecase';
 
 @Controller('/championships')
 export class ChampionshipController {
   constructor(
     private readonly _createChampionshipUsecase: CreateChampionshipUsecase,
+    private readonly _createDuoUsecase: CreateDuoUsecase,
   ) {}
 
   @Post()
@@ -15,5 +18,13 @@ export class ChampionshipController {
     await this._createChampionshipUsecase.createChampionship(
       createChampionshipDto,
     );
+  }
+
+  @Post('/:championshipId/duos')
+  async createDuo(
+    @Param('championshipId') championshipId: string,
+    @Body() createDuoDto: CreateDuoDto,
+  ): Promise<void> {
+    return this._createDuoUsecase.createDuo(championshipId, createDuoDto);
   }
 }

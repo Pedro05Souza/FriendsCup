@@ -23,6 +23,14 @@ export class CreateDuoUsecase {
       throw new BadRequestException('Championship not found');
     }
 
+    if (championship.isDuo === false) {
+      throw new BadRequestException('Championship is not a duo type');
+    }
+
+    if (createDuoDto.player1Id === createDuoDto.player2Id) {
+      throw new BadRequestException('Players must be different');
+    }
+
     await this._championshipRepository.createDuo({
       player1Id: createDuoDto.player1Id,
       player2Id: createDuoDto.player2Id,
