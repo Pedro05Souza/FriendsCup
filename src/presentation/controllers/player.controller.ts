@@ -15,6 +15,8 @@ import { DeletePlayerUsecase } from 'src/application/usecases/delete-player.usec
 import { UpdatePlayerUsecase } from 'src/application/usecases/update-player.usecase';
 import { ListPlayersUsecase } from 'src/application/usecases/list-players.usecase';
 import { ListPlayerResponse } from 'src/domain/interfaces/player.interface';
+import { CreateDuoDto } from 'src/application/dtos/create-duo.dto';
+import { CreateDuoUsecase } from 'src/application/usecases/create-duo-usecase';
 
 @Controller('players')
 export class PlayerController {
@@ -23,6 +25,7 @@ export class PlayerController {
     private readonly _deletePlayerUsecase: DeletePlayerUsecase,
     private readonly _updatePlayerUsecase: UpdatePlayerUsecase,
     private readonly _listPlayersUsecase: ListPlayersUsecase,
+    private readonly _createDuoUsecase: CreateDuoUsecase,
   ) {}
 
   @Post()
@@ -46,5 +49,13 @@ export class PlayerController {
   @Get()
   async list(@Query('page') page: number): Promise<ListPlayerResponse> {
     return this._listPlayersUsecase.listPlayers(page);
+  }
+
+  @Post('/:championshipId/duos')
+  async createDuo(
+    @Param('championshipId') championshipId: string,
+    @Body() createDuoDto: CreateDuoDto,
+  ): Promise<void> {
+    return this._createDuoUsecase.createDuo(championshipId, createDuoDto);
   }
 }

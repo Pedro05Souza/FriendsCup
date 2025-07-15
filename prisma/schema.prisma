@@ -18,8 +18,10 @@ model Player {
     goalsConceded Int            @default(0) @map("goals_conceded")
     createdAt     DateTime       @default(now()) @map("created_at")
     championships Championship[]
-    match         Match[]
+    matches       Match[]
     groupPlayers  GroupPlayer[]
+    duoPlayer1    Duo[]          @relation("DuoPlayer1")
+    duoPlayer2    Duo[]          @relation("DuoPlayer2")
 
     @@map("player")
 }
@@ -40,7 +42,9 @@ model Championship {
     createdAt DateTime            @map("created_at")
     matches   Match[]
     players   Player[]
+    duos      Duo[]
     groups    ChampionshipGroup[]
+    isDuo     Boolean              @map("is_duo")
 
     @@map("championship")
 }
@@ -49,8 +53,10 @@ model Match {
     id             String       @id @default(uuid())
     championship   Championship @relation(fields: [championshipId], references: [id])
     championshipId String       @map("championship_id")
-    player         Player       @relation(fields: [playerId], references: [id])
-    playerId       String       @map("player_id")
+    player         Player?      @relation(fields: [playerId], references: [id])
+    playerId       String?      @map("player_id")
+    duo            Duo?         @relation(fields: [duoId], references: [id])
+    duoId          String?      @map("duo_id")
     score          MatchScore?
     matchPhase     String       @map("match_phase")
 
@@ -59,8 +65,10 @@ model Match {
 
 model GroupPlayer {
     id                  String            @id @default(uuid())
-    player              Player            @relation(fields: [playerId], references: [id])
-    playerId            String            @map("player_id")
+    player              Player?           @relation(fields: [playerId], references: [id])
+    playerId            String?           @map("player_id")
+    duo                 Duo?              @relation(fields: [duoId], references: [id])
+    duoId               String?           @map("duo_id")
     championshipGroup   ChampionshipGroup @relation(fields: [championshipGroupId], references: [id])
     championshipGroupId String            @map("championship_group_id")
     points              Int               @default(0)
@@ -78,4 +86,19 @@ model ChampionshipGroup {
     createdAt      DateTime      @default(now()) @map("created_at")
 
     @@map("championship_group")
+}
+
+model Duo {
+    id             String        @id @default(uuid())
+    player1        Player        @relation("DuoPlayer1", fields: [player1Id], references: [id])
+    player1Id      String        @map("player_1_id")
+    player2        Player        @relation("DuoPlayer2", fields: [player2Id], references: [id])
+    player2Id      String        @map("player_2_id")
+    championship   Championship  @relation(fields: [championshipId], references: [id])
+    championshipId String        @map("championship_id")
+    matches        Match[]
+    groupPlayers   GroupPlayer[]
+
+    @@unique([player1Id, player2Id, championshipId])
+    @@map("duo")
 }
