@@ -72,7 +72,6 @@ model GroupPlayer {
     championshipGroup   ChampionshipGroup @relation(fields: [championshipGroupId], references: [id])
     championshipGroupId String            @map("championship_group_id")
     points              Int               @default(0)
-    position            Int               @default(0)
     goalDifference      Int               @default(0) @map("goal_difference")
 
     @@map("group_player")
