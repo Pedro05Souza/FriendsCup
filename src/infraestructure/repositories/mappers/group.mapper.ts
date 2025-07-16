@@ -36,6 +36,7 @@ export function mapToGroupParticipant(
       points: groupPlayer.points,
       goalDifference: groupPlayer.goalDifference,
       groupPlayerId: groupPlayer.id,
+      name: groupPlayer.duo.name,
     };
   }
   throw new Error('Invalid Group Player Data');

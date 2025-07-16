@@ -16,6 +16,7 @@ export interface DuoEntity {
   id: string;
   player1: PlayerEntity;
   player2: PlayerEntity;
+  name: string;
 }
 
 export interface GroupPlayerEntity extends PlayerEntity {

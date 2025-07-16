@@ -2,24 +2,29 @@ import { Injectable } from '@nestjs/common';
 import {
   ChampionshipRepository,
   CreateChampionshipParams,
+  CreateChampionshipParticipantParams,
   CreateDuoParams,
   CreateGroupEntityParams,
-  CreateMatchParams,
+  CreateMatchParticipant,
 } from '../../domain/interfaces/championship.interface';
-import { mapToRawChampionshipEntity } from './mappers/championship.mapper';
-import { RawChampionshipEntity } from 'src/domain/entities/championship.entity';
+import { mapToChampionshipEntity } from './mappers/championship.mapper';
+import { ChampionshipEntity } from 'src/domain/entities/championship.entity';
 import { playerModelToEntity } from './mappers/player.mapper';
 import { PrismaClientService } from 'src/application/services/prisma-client';
 import {
   DuoEntity,
   GroupDuoEntity,
   GroupPlayerEntity,
+  PlayerEntity,
 } from 'src/domain/entities/player.entity';
 import { GroupEntity } from 'src/domain/entities/group.entity';
 import {
   mapToGroupEntity,
   mapToGroupParticipant,
 } from './mappers/group.mapper';
+import { MatchEntity } from 'src/domain/entities/match.entity';
+import { MatchPhase } from 'src/domain/constants';
+import { mapToMatchEntity } from './mappers/match.mapper';
 
 interface PlayerData {
   id: string;
@@ -39,6 +44,7 @@ type DuoData = {
   championshipId: string;
   player1Id: string;
   player2Id: string;
+  name: string;
 };
 
 export type GroupPlayerData = {
@@ -61,6 +67,39 @@ export type ChampionshipGroupData = {
   championshipId: string;
 };
 
+export type MatchData = {
+  participants: Array<{
+    id: string;
+    penaltyShootoutGoals: number | null;
+    goals: number;
+    playerId?: string | null;
+    duoId?: string | null;
+  }>;
+} & {
+  id: string;
+  championshipId: string;
+  matchPhase: string;
+  winnerId: string | null;
+  duoWinnerId: string | null;
+};
+
+export type ChampionshipData = {
+  matches: Array<{
+    id: string;
+  }>;
+  players: Array<{
+    id: string;
+  }>;
+  duos: Array<{
+    id: string;
+  }>;
+} & {
+  id: string;
+  title: string;
+  createdAt: Date;
+  isDuo: boolean;
+};
+
 @Injectable()
 export class ChampionshipRepositoryImpl implements ChampionshipRepository {
   constructor(private readonly _prismaService: PrismaClientService) {}
@@ -79,47 +118,82 @@ export class ChampionshipRepositoryImpl implements ChampionshipRepository {
     });
   }
 
-  async createDuo(params: CreateDuoParams): Promise<void> {
-    await this._prismaService.duo.create({
+  async createDuo(params: CreateDuoParams): Promise<DuoEntity> {
+    const duo = await this._prismaService.duo.create({
       data: {
         player1Id: params.player1Id,
         player2Id: params.player2Id,
         championshipId: params.championshipId,
+        name: params.name,
+      },
+      include: {
+        player1: true,
+        player2: true,
       },
     });
+
+    return {
+      id: duo.id,
+      player1: playerModelToEntity(duo.player1),
+      player2: playerModelToEntity(duo.player2),
+      name: duo.name,
+    };
   }
 
-  async findById(id: string): Promise<RawChampionshipEntity | null> {
+  async findChampionshipById(id: string): Promise<ChampionshipEntity | null> {
     const championship = await this._prismaService.championship.findUnique({
       where: { id },
+      include: {
+        matches: {
+          select: {
+            id: true,
+          },
+        },
+        players: {
+          select: {
+            id: true,
+          },
+        },
+        duos: {
+          select: {
+            id: true,
+          },
+        },
+      },
     });
 
     if (championship === null) {
       return null;
     }
 
-    return mapToRawChampionshipEntity(championship);
+    return mapToChampionshipEntity(championship);
   }
 
-  async createMatch(params: CreateMatchParams): Promise<void> {
-    const matchData = {
-      championship: { connect: { id: params.championshipId } },
-      matchPhase: params.matchPhase,
-      score: {
-        create: {
-          score: params.playerGoals,
-          penaltyScore: params.isPenaltyShootout
-            ? (params.penaltyShootoutScore ?? null)
-            : null,
+  async createMatch(
+    championshipId: string,
+    matchPhase: MatchPhase,
+    winnerId?: string,
+  ): Promise<MatchEntity> {
+    const match = await this._prismaService.match.create({
+      data: {
+        championshipId,
+        matchPhase,
+        winnerId,
+      },
+      include: {
+        participants: {
+          select: {
+            id: true,
+            penaltyShootoutGoals: true,
+            goals: true,
+            playerId: true,
+            duoId: true,
+          },
         },
       },
-      ...(params.playerId && { player: { connect: { id: params.playerId } } }),
-      ...(params.duoId && { duo: { connect: { id: params.duoId } } }),
-    };
-
-    await this._prismaService.match.create({
-      data: matchData,
     });
+
+    return mapToMatchEntity(match);
   }
 
   async getDuoPlayersById(duoId: string): Promise<DuoEntity | null> {
@@ -131,7 +205,7 @@ export class ChampionshipRepositoryImpl implements ChampionshipRepository {
       },
     });
 
-    if (!duo) {
+    if (duo === null) {
       return null;
     }
 
@@ -139,6 +213,7 @@ export class ChampionshipRepositoryImpl implements ChampionshipRepository {
       id: duo.id,
       player1: playerModelToEntity(duo.player1),
       player2: playerModelToEntity(duo.player2),
+      name: duo.name,
     };
   }
 
@@ -190,43 +265,14 @@ export class ChampionshipRepositoryImpl implements ChampionshipRepository {
     return mapToGroupEntity(group);
   }
 
-  async getGroupByPlayerId(playerId: string): Promise<GroupEntity | null> {
+  async getGroupByParticipantId(
+    participantId: string,
+  ): Promise<GroupEntity | null> {
     const group = await this._prismaService.championshipGroup.findFirst({
       where: {
         groupPlayers: {
           some: {
-            playerId,
-          },
-        },
-      },
-      include: {
-        groupPlayers: {
-          include: {
-            player: true,
-            duo: {
-              include: {
-                player1: true,
-                player2: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    if (group === null) {
-      return null;
-    }
-
-    return mapToGroupEntity(group);
-  }
-
-  async getGroupByDuoId(duoId: string): Promise<GroupEntity | null> {
-    const group = await this._prismaService.championshipGroup.findFirst({
-      where: {
-        groupPlayers: {
-          some: {
-            duoId,
+            OR: [{ playerId: participantId }, { duoId: participantId }],
           },
         },
       },
@@ -289,5 +335,96 @@ export class ChampionshipRepositoryImpl implements ChampionshipRepository {
     });
 
     return mapToGroupParticipant(groupPlayer);
+  }
+
+  async createMatchParticipant(
+    matchParticipant: CreateMatchParticipant,
+  ): Promise<void> {
+    await this._prismaService.matchParticipant.create({
+      data: {
+        matchId: matchParticipant.matchId,
+        playerId: matchParticipant.playerId,
+        duoId: matchParticipant.duoId,
+        goals: matchParticipant.goals,
+        penaltyShootoutGoals: matchParticipant.penaltyShootoutGoals,
+      },
+    });
+  }
+
+  async getMatchesByIds(matchIds: string[]): Promise<MatchEntity[]> {
+    const matches = await this._prismaService.match.findMany({
+      where: {
+        id: { in: matchIds },
+      },
+      include: {
+        participants: {
+          select: {
+            id: true,
+            penaltyShootoutGoals: true,
+            goals: true,
+            playerId: true,
+            duoId: true,
+          },
+        },
+      },
+    });
+
+    return matches.map(mapToMatchEntity);
+  }
+
+  async findParticipantsByChampionshipId(
+    championshipId: string,
+  ): Promise<Array<DuoEntity | PlayerEntity>> {
+    const championship = await this._prismaService.championship.findUnique({
+      where: { id: championshipId },
+      include: {
+        duos: {
+          include: {
+            player1: true,
+            player2: true,
+          },
+        },
+        players: true,
+      },
+    });
+
+    if (championship === null) {
+      return [];
+    }
+
+    if (championship.duos.length > 0) {
+      return championship.duos.map((duo) => ({
+        id: duo.id,
+        player1: playerModelToEntity(duo.player1),
+        player2: playerModelToEntity(duo.player2),
+        name: duo.name,
+      }));
+    }
+
+    if (championship.players.length > 0) {
+      return championship.players.map((player) => playerModelToEntity(player));
+    }
+
+    return [];
+  }
+
+  async bulkCreateParticipantsForChampionship(
+    params: CreateChampionshipParticipantParams,
+  ): Promise<void> {
+    await this._prismaService.championship.update({
+      where: { id: params.championshipId },
+      data: {
+        ...(params.playerIds && {
+          players: {
+            connect: params.playerIds.map((id) => ({ id })),
+          },
+        }),
+        ...(params.duoIds && {
+          duos: {
+            connect: params.duoIds.map((id) => ({ id })),
+          },
+        }),
+      },
+    });
   }
 }

@@ -6,21 +6,9 @@ CREATE TABLE "player" (
     "defense" INTEGER NOT NULL,
     "attack" INTEGER NOT NULL,
     "mentality" INTEGER NOT NULL,
-    "goals_scored" INTEGER NOT NULL DEFAULT 0,
-    "goals_conceded" INTEGER NOT NULL DEFAULT 0,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "player_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "match_score" (
-    "id" TEXT NOT NULL,
-    "match_id" TEXT NOT NULL,
-    "score" INTEGER NOT NULL,
-    "penalty_score" INTEGER,
-
-    CONSTRAINT "match_score_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -37,11 +25,23 @@ CREATE TABLE "championship" (
 CREATE TABLE "match" (
     "id" TEXT NOT NULL,
     "championship_id" TEXT NOT NULL,
-    "player_id" TEXT,
-    "duo_id" TEXT,
     "match_phase" TEXT NOT NULL,
+    "winner_id" TEXT,
+    "duo_winner_id" TEXT,
 
     CONSTRAINT "match_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "match_participant" (
+    "id" TEXT NOT NULL,
+    "match_id" TEXT NOT NULL,
+    "player_id" TEXT,
+    "duo_id" TEXT,
+    "goals" INTEGER NOT NULL DEFAULT 0,
+    "penalty_shootout_goals" INTEGER DEFAULT 0,
+
+    CONSTRAINT "match_participant_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -51,7 +51,6 @@ CREATE TABLE "group_player" (
     "duo_id" TEXT,
     "championship_group_id" TEXT NOT NULL,
     "points" INTEGER NOT NULL DEFAULT 0,
-    "position" INTEGER NOT NULL DEFAULT 0,
     "goal_difference" INTEGER NOT NULL DEFAULT 0,
 
     CONSTRAINT "group_player_pkey" PRIMARY KEY ("id")
@@ -72,6 +71,7 @@ CREATE TABLE "duo" (
     "player_1_id" TEXT NOT NULL,
     "player_2_id" TEXT NOT NULL,
     "championship_id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
 
     CONSTRAINT "duo_pkey" PRIMARY KEY ("id")
 );
@@ -85,25 +85,28 @@ CREATE TABLE "_ChampionshipToPlayer" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "match_score_match_id_key" ON "match_score"("match_id");
-
--- CreateIndex
 CREATE UNIQUE INDEX "duo_player_1_id_player_2_id_championship_id_key" ON "duo"("player_1_id", "player_2_id", "championship_id");
 
 -- CreateIndex
 CREATE INDEX "_ChampionshipToPlayer_B_index" ON "_ChampionshipToPlayer"("B");
 
 -- AddForeignKey
-ALTER TABLE "match_score" ADD CONSTRAINT "match_score_match_id_fkey" FOREIGN KEY ("match_id") REFERENCES "match"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "match" ADD CONSTRAINT "match_championship_id_fkey" FOREIGN KEY ("championship_id") REFERENCES "championship"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "match" ADD CONSTRAINT "match_player_id_fkey" FOREIGN KEY ("player_id") REFERENCES "player"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "match" ADD CONSTRAINT "match_winner_id_fkey" FOREIGN KEY ("winner_id") REFERENCES "player"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "match" ADD CONSTRAINT "match_duo_id_fkey" FOREIGN KEY ("duo_id") REFERENCES "duo"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "match" ADD CONSTRAINT "match_duo_winner_id_fkey" FOREIGN KEY ("duo_winner_id") REFERENCES "duo"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "match_participant" ADD CONSTRAINT "match_participant_match_id_fkey" FOREIGN KEY ("match_id") REFERENCES "match"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "match_participant" ADD CONSTRAINT "match_participant_player_id_fkey" FOREIGN KEY ("player_id") REFERENCES "player"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "match_participant" ADD CONSTRAINT "match_participant_duo_id_fkey" FOREIGN KEY ("duo_id") REFERENCES "duo"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "group_player" ADD CONSTRAINT "group_player_player_id_fkey" FOREIGN KEY ("player_id") REFERENCES "player"("id") ON DELETE SET NULL ON UPDATE CASCADE;

@@ -8,6 +8,8 @@ import { CreateChampionshipUsecase } from './create-championship.usecase';
 import { ListPlayersUsecase } from './list-players.usecase';
 import { CreateDuoUsecase } from './create-duo.usecase';
 import { CreateMatchUsecase } from './create-match.usecase';
+import { ChampionshipDtoAssembler } from './assemblers/championship-dto.assembler';
+import { GetChampionshipUsecase } from './get-championship.usecase';
 
 @Module({
   controllers: [],
@@ -20,6 +22,9 @@ import { CreateMatchUsecase } from './create-match.usecase';
     ListPlayersUsecase,
     CreateDuoUsecase,
     CreateMatchUsecase,
+    PlayerDtoAssembler,
+    ChampionshipDtoAssembler,
+    GetChampionshipUsecase,
   ],
   exports: [
     CreatePlayerUsecase,
@@ -29,6 +34,7 @@ import { CreateMatchUsecase } from './create-match.usecase';
     ListPlayersUsecase,
     CreateDuoUsecase,
     CreateMatchUsecase,
+    GetChampionshipUsecase,
   ],
   imports: [RepositoriesModule],
 })

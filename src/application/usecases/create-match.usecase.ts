@@ -21,6 +21,16 @@ interface MatchScoreResult {
   player2Score: number;
 }
 
+interface MatchDetails {
+  firstParticipantId: string;
+  firstParticipantGoals: number;
+  secondParticipantId: string;
+  secondParticipantGoals: number;
+  matchPhase: MatchPhase;
+  firstParticipantPenaltyShootout?: number;
+  secondParticipantPenaltyShootout?: number;
+}
+
 @Injectable()
 export class CreateMatchUsecase {
   constructor(
@@ -34,79 +44,85 @@ export class CreateMatchUsecase {
     championshipId: string,
     createMatch: CreateMatchDto,
   ): Promise<void> {
+    if (createMatch.participants.length !== 2) {
+      throw new BadRequestException('Match must have exactly two participants');
+    }
+
+    if (!createMatch.participants[0] || !createMatch.participants[1]) {
+      throw new BadRequestException('Both participants must be provided');
+    }
+
+    const matchDetails = {
+      firstParticipantId: createMatch.participants[0].id,
+      firstParticipantGoals: createMatch.participants[0].goals,
+      secondParticipantId: createMatch.participants[1].id,
+      secondParticipantGoals: createMatch.participants[1].goals,
+      matchPhase: createMatch.matchPhase,
+      firstParticipantPenaltyShootout:
+        createMatch.participants[0].penaltyShootoutGoals,
+      secondParticipantPenaltyShootout:
+        createMatch.participants[1].penaltyShootoutGoals,
+    } as MatchDetails;
+
     const championship =
-      await this._championshipRepository.findById(championshipId);
+      await this._championshipRepository.findChampionshipById(championshipId);
 
     if (championship === null) {
       throw new BadRequestException('Championship not found');
     }
 
-    if (
-      DUO_CHAMPIOSHIPS.includes(championship.title) &&
-      !createMatch.duo1Id &&
-      !createMatch.duo2Id
-    ) {
-      throw new BadRequestException('Duo is required for this championship');
+    const isDuo = DUO_CHAMPIOSHIPS.includes(championship.title);
+
+    if (matchDetails.firstParticipantId === matchDetails.secondParticipantId) {
+      throw new BadRequestException('Participants must be different');
     }
 
-    if (
-      !DUO_CHAMPIOSHIPS.includes(championship.title) &&
-      (createMatch.duo1Id || createMatch.duo2Id)
-    ) {
-      throw new BadRequestException('Duo is not allowed for this championship');
+    if (isDuo) {
+      await this._checkifDuosExist(
+        matchDetails.firstParticipantId,
+        matchDetails.secondParticipantId,
+      );
+    } else {
+      await this._checkIfPlayersExist(
+        matchDetails.firstParticipantId,
+        matchDetails.secondParticipantId,
+      );
+
+      await this.registerChampionshipForParticipants(championshipId, [
+        matchDetails.firstParticipantId,
+        matchDetails.secondParticipantId,
+      ]);
     }
 
-    await this._checkIfPlayersExist(
-      createMatch.player1Id,
-      createMatch.player2Id,
+    const scorePoints = this._defineScorePointsForMatch(
+      matchDetails.firstParticipantGoals,
+      matchDetails.secondParticipantGoals,
+      matchDetails.firstParticipantPenaltyShootout,
+      matchDetails.secondParticipantPenaltyShootout,
     );
 
-    await this._checkifDuosExist(createMatch.duo1Id, createMatch.duo2Id);
+    let winnerId: string | undefined;
 
-    if (
-      !createMatch.player1Id &&
-      !createMatch.duo1Id &&
-      !createMatch.player2Id &&
-      !createMatch.duo2Id
-    ) {
-      throw new BadRequestException('At least one player or duo is required');
+    if (scorePoints.player1Score > scorePoints.player2Score) {
+      winnerId = matchDetails.firstParticipantId;
+    } else if (scorePoints.player1Score < scorePoints.player2Score) {
+      winnerId = matchDetails.secondParticipantId;
     }
 
-    if (
-      createMatch.player1Id === createMatch.player2Id &&
-      createMatch.duo1Id === createMatch.duo2Id
-    ) {
-      throw new BadRequestException('Players or duos must be different');
-    }
-
-    await this._championshipRepository.createMatch({
-      playerId: createMatch.player1Id,
-      duoId: createMatch.duo1Id,
-      playerGoals: createMatch.player1Goals,
-      matchPhase: createMatch.matchPhase as MatchPhase,
-      isPenaltyShootout: createMatch.isPenaltyShootout,
-      penaltyShootoutScore: createMatch.player1PenaltyShootout,
+    const matchEntity = await this._championshipRepository.createMatch(
       championshipId,
-    });
+      createMatch.matchPhase as MatchPhase,
+      winnerId,
+    );
 
-    await this._championshipRepository.createMatch({
-      playerId: createMatch.player2Id,
-      duoId: createMatch.duo2Id,
-      playerGoals: createMatch.player2Goals,
-      matchPhase: createMatch.matchPhase as MatchPhase,
-      isPenaltyShootout: createMatch.isPenaltyShootout,
-      penaltyShootoutScore: createMatch.player2PenaltyShootout,
-      championshipId,
-    });
+    await this._createMatchForParticipants(matchEntity.id, matchDetails, isDuo);
 
-    if (createMatch.matchPhase !== matchPhaseEnum.Values.GROUP_STAGE) {
-      
+    if (matchDetails.matchPhase !== matchPhaseEnum.Values.GROUP_STAGE) {
       return;
     }
 
-    let group = await this.getGroupByPlayerOrDuo(
-      createMatch.player1Id,
-      createMatch.duo1Id,
+    let group = await this._championshipRepository.getGroupByParticipantId(
+      matchDetails.firstParticipantId,
     );
 
     group ??=
@@ -114,48 +130,31 @@ export class CreateMatchUsecase {
         championshipId,
       );
 
-    const groupPlayer1 = await this._getGroupPlayerOrDuo(
+    const firstParticipantGroupStatus = await this._getGroupPlayerOrDuo(
       group,
-      createMatch.player1Id ?? (createMatch.duo1Id as string),
-      !!createMatch.duo1Id,
+      matchDetails.firstParticipantId,
+      isDuo,
     );
 
-    const groupPlayer2 = await this._getGroupPlayerOrDuo(
+    const secondParticipantGroupStatus = await this._getGroupPlayerOrDuo(
       group,
-      createMatch.player2Id ?? (createMatch.duo2Id as string),
-      !!createMatch.duo2Id,
+      matchDetails.secondParticipantId,
+      isDuo,
     );
 
-    const scorePoints = this._defineScorePointsForMatch(
-      createMatch.player1Goals,
-      createMatch.player2Goals,
-      createMatch.isPenaltyShootout,
-      createMatch.player1PenaltyShootout,
-      createMatch.player2PenaltyShootout,
+    firstParticipantGroupStatus.points += scorePoints.player1Score;
+    secondParticipantGroupStatus.points += scorePoints.player2Score;
+    firstParticipantGroupStatus.goalDifference +=
+      matchDetails.firstParticipantGoals - matchDetails.secondParticipantGoals;
+    secondParticipantGroupStatus.goalDifference +=
+      matchDetails.secondParticipantGoals - matchDetails.firstParticipantGoals;
+
+    await this._championshipRepository.updateGroupParticipant(
+      firstParticipantGroupStatus,
     );
-
-    groupPlayer1.points += scorePoints.player1Score;
-    groupPlayer2.points += scorePoints.player2Score;
-    groupPlayer1.goalDifference +=
-      createMatch.player1Goals - createMatch.player2Goals;
-    groupPlayer2.goalDifference +=
-      createMatch.player2Goals - createMatch.player1Goals;
-
-    await this._championshipRepository.updateGroupParticipant(groupPlayer1);
-    await this._championshipRepository.updateGroupParticipant(groupPlayer2);
-  }
-
-  private async getGroupByPlayerOrDuo(
-    playerId?: string,
-    duoId?: string,
-  ): Promise<GroupEntity | null> {
-    if (duoId) {
-      return this._championshipRepository.getGroupByDuoId(duoId);
-    } else if (playerId) {
-      return this._championshipRepository.getGroupByPlayerId(playerId);
-    }
-
-    throw new BadRequestException('Player or Duo ID must be provided');
+    await this._championshipRepository.updateGroupParticipant(
+      secondParticipantGroupStatus,
+    );
   }
 
   private async _checkIfPlayersExist(
@@ -206,7 +205,7 @@ export class CreateMatchUsecase {
   private _defineScorePointsForMatch(
     player1Goals: number,
     player2Goals: number,
-    isPenaltyShootout: boolean,
+
     player1PenaltyShootout?: number,
     player2PenaltyShootout?: number,
   ): MatchScoreResult {
@@ -218,18 +217,15 @@ export class CreateMatchUsecase {
       return { player1Score: 0, player2Score: 3 };
     }
 
-    if (isPenaltyShootout) {
-      if (
-        player1PenaltyShootout !== undefined &&
-        player2PenaltyShootout !== undefined
-      ) {
-        if (player1PenaltyShootout > player2PenaltyShootout) {
-          return { player1Score: 3, player2Score: 0 };
-        } else if (player1PenaltyShootout < player2PenaltyShootout) {
-          return { player1Score: 0, player2Score: 3 };
-        }
+    if (
+      player1PenaltyShootout !== undefined &&
+      player2PenaltyShootout !== undefined
+    ) {
+      if (player1PenaltyShootout > player2PenaltyShootout) {
+        return { player1Score: 3, player2Score: 0 };
+      } else if (player1PenaltyShootout < player2PenaltyShootout) {
+        return { player1Score: 0, player2Score: 3 };
       }
-      return { player1Score: 1, player2Score: 1 };
     }
     return { player1Score: 1, player2Score: 1 };
   }
@@ -266,5 +262,74 @@ export class CreateMatchUsecase {
     }
 
     return groupUser;
+  }
+
+  private async _createMatchForParticipants(
+    matchId: string,
+    matchDetails: MatchDetails,
+    isDuo: boolean,
+  ): Promise<void> {
+    await this._createParticipantForMatch(
+      matchId,
+      matchDetails.firstParticipantId,
+      matchDetails.firstParticipantGoals,
+      isDuo,
+      matchDetails.firstParticipantPenaltyShootout,
+    );
+
+    await this._createParticipantForMatch(
+      matchId,
+      matchDetails.secondParticipantId,
+      matchDetails.secondParticipantGoals,
+      isDuo,
+      matchDetails.secondParticipantPenaltyShootout,
+    );
+  }
+
+  private async _createParticipantForMatch(
+    matchId: string,
+    participantId: string,
+    goals: number,
+    isDuo: boolean,
+    penaltyShootoutGoals?: number,
+  ): Promise<void> {
+    const matchParams = {
+      matchId,
+      playerId: isDuo ? undefined : participantId,
+      duoId: isDuo ? participantId : undefined,
+      playerGoals: goals,
+      penaltyShootoutGoals: penaltyShootoutGoals,
+      goals: goals,
+    };
+
+    await this._championshipRepository.createMatchParticipant(matchParams);
+  }
+
+  private async registerChampionshipForParticipants(
+    championshipId: string,
+    playerIds: string[],
+  ): Promise<void> {
+    const registeredParticipants =
+      await this._championshipRepository.findParticipantsByChampionshipId(
+        championshipId,
+      );
+
+    playerIds = playerIds.filter((playerId) => {
+      return !registeredParticipants.some((participant) => {
+        if ('player1' in participant && 'player2' in participant) {
+          return (
+            participant.player1.id === playerId ||
+            participant.player2.id === playerId
+          );
+        } else {
+          return participant.id === playerId;
+        }
+      });
+    });
+
+    await this._championshipRepository.bulkCreateParticipantsForChampionship({
+      championshipId,
+      playerIds,
+    });
   }
 }
