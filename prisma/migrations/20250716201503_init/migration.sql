@@ -17,6 +17,8 @@ CREATE TABLE "championship" (
     "title" TEXT NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL,
     "is_duo" BOOLEAN NOT NULL,
+    "winner_id" TEXT,
+    "duo_winner_id" TEXT,
 
     CONSTRAINT "championship_pkey" PRIMARY KEY ("id")
 );
@@ -89,6 +91,12 @@ CREATE UNIQUE INDEX "duo_player_1_id_player_2_id_championship_id_key" ON "duo"("
 
 -- CreateIndex
 CREATE INDEX "_ChampionshipToPlayer_B_index" ON "_ChampionshipToPlayer"("B");
+
+-- AddForeignKey
+ALTER TABLE "championship" ADD CONSTRAINT "championship_winner_id_fkey" FOREIGN KEY ("winner_id") REFERENCES "player"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "championship" ADD CONSTRAINT "championship_duo_winner_id_fkey" FOREIGN KEY ("duo_winner_id") REFERENCES "duo"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "match" ADD CONSTRAINT "match_championship_id_fkey" FOREIGN KEY ("championship_id") REFERENCES "championship"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

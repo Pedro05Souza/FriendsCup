@@ -119,7 +119,7 @@ export class CreateMatchUsecase {
     await this._createMatchForParticipants(matchEntity.id, matchDetails, isDuo);
 
     if (matchDetails.matchPhase !== matchPhaseEnum.Values.GROUP_STAGE) {
-      if (matchDetails.matchPhase === matchPhaseEnum.Values.FINAL) {
+      if (matchDetails.matchPhase === matchPhaseEnum.Values.FINALS) {
         await this._championshipRepository.updateChampionshipWinner(
           championshipId,
           isDuo ? undefined : winnerId,
@@ -130,14 +130,11 @@ export class CreateMatchUsecase {
       return;
     }
 
-    let group = await this._championshipRepository.getGroupByParticipantId(
+    const group = await this._resolveGroupForParticipants(
+      championshipId,
       matchDetails.firstParticipantId,
+      matchDetails.secondParticipantId,
     );
-
-    group ??=
-      await this._championshipRepository.createChampionshipGroup(
-        championshipId,
-      );
 
     const firstParticipantGroupStatus = await this._getGroupPlayerOrDuo(
       group,
@@ -239,6 +236,41 @@ export class CreateMatchUsecase {
     return { player1Score: 1, player2Score: 1 };
   }
 
+  private async _resolveGroupForParticipants(
+    championshipId: string,
+    firstParticipantId: string,
+    secondParticipantId: string,
+  ): Promise<GroupEntity> {
+    const firstParticipantGroup =
+      await this._championshipRepository.getGroupByParticipantId(
+        firstParticipantId,
+      );
+    const secondParticipantGroup =
+      await this._championshipRepository.getGroupByParticipantId(
+        secondParticipantId,
+      );
+
+    if (
+      firstParticipantGroup &&
+      secondParticipantGroup &&
+      firstParticipantGroup.id !== secondParticipantGroup.id
+    ) {
+      throw new BadRequestException(
+        'Participants cannot be in different groups for a group stage match',
+      );
+    }
+
+    if (firstParticipantGroup) {
+      return firstParticipantGroup;
+    }
+
+    if (secondParticipantGroup) {
+      return secondParticipantGroup;
+    }
+
+    return this._championshipRepository.createChampionshipGroup(championshipId);
+  }
+
   private async _getGroupPlayerOrDuo(
     group: GroupEntity,
     id: string,
@@ -255,9 +287,9 @@ export class CreateMatchUsecase {
 
     const groupUser = group.groupPlayers.find((groupPlayer) => {
       if (isDuo) {
-        return groupPlayer.id === id;
+        return (groupPlayer as GroupDuoEntity).id === id;
       } else {
-        return groupPlayer.id === id;
+        return (groupPlayer as GroupPlayerEntity).id === id;
       }
     });
 

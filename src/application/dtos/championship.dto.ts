@@ -3,6 +3,7 @@ import { createZodDto } from 'nestjs-zod';
 import { playerDtoSchema } from './player.dto';
 import { duoDtoSchema } from './duo.dto';
 import { matchDtoSchema } from './match.dto';
+import { championshipGroupDtoSchema } from './championship-group.dto';
 
 const playerChampionshipDtoSchema = playerDtoSchema
   .omit({
@@ -22,9 +23,10 @@ export const championshipDtoSchema = z.object({
   createdAtIso: z.string().datetime(),
   championshipWinnerId: z.string().optional(),
   championshipWinnerName: z.string().optional(),
-  matches: z.array(matchDtoSchema),
   players: z.array(playerChampionshipDtoSchema),
+  groups: z.array(championshipGroupDtoSchema).optional(),
   duos: z.array(duoDtoSchema).optional(),
+  matches: z.array(matchDtoSchema),
 });
 
 export class ChampionshipDto extends createZodDto(championshipDtoSchema) {}

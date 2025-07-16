@@ -8,52 +8,51 @@ generator client {
 }
 
 model Player {
-    id                String             @id @default(uuid())
-    name              String
-    intelligence      Int
-    defense           Int
-    attack            Int
-    mentality         Int
-    createdAt         DateTime           @default(now()) @map("created_at")
-    championships     Championship[]
-    groupPlayers      GroupPlayer[]
-    duoPlayer1        Duo[]              @relation("DuoPlayer1")
-    duoPlayer2        Duo[]              @relation("DuoPlayer2")
-    matchWinner       Match[]            @relation("MatchWinner")
-    matchParticipants MatchParticipant[] @relation("MatchParticipantPlayer")
-    championshipWinner Championship?     @relation("ChampionshipWinner")
-    championshipWinnerId String?         @map("championship_winner_id") @unique
+    id                   String             @id @default(uuid())
+    name                 String
+    intelligence         Int
+    defense              Int
+    attack               Int
+    mentality            Int
+    createdAt            DateTime           @default(now()) @map("created_at")
+    championships        Championship[]
+    groupPlayers         GroupPlayer[]
+    duoPlayer1           Duo[]              @relation("DuoPlayer1")
+    duoPlayer2           Duo[]              @relation("DuoPlayer2")
+    matchWinner          Match[]            @relation("MatchWinner")
+    matchParticipants    MatchParticipant[] @relation("MatchParticipantPlayer")
+    championshipWinner   Championship[]     @relation("ChampionshipWinner")
 
     @@map("player")
 }
 
 model Championship {
-    id        String              @id @default(uuid())
-    title     String
-    createdAt DateTime            @map("created_at")
-    matches   Match[]
-    players   Player[]
-    duos      Duo[]
-    groups    ChampionshipGroup[]
-    isDuo     Boolean             @map("is_duo")
-    winner    Player?            @relation("ChampionshipWinner", fields: [winnerId], references: [id])
-    winnerId  String?            @map("winner_id") @unique
-    duoWinner Duo?               @relation("ChampionshipDuoWinner", fields: [duoWinnerId], references: [id])
-    duoWinnerId String?          @map("duo_winner_id") @unique
+    id          String              @id @default(uuid())
+    title       String
+    createdAt   DateTime            @map("created_at")
+    matches     Match[]
+    players     Player[]
+    duos        Duo[]
+    groups      ChampionshipGroup[]
+    isDuo       Boolean             @map("is_duo")
+    winner      Player?             @relation("ChampionshipWinner", fields: [winnerId], references: [id])
+    winnerId    String?             @map("winner_id")
+    duoWinner   Duo?                @relation("ChampionshipDuoWinner", fields: [duoWinnerId], references: [id])
+    duoWinnerId String?             @map("duo_winner_id")
 
     @@map("championship")
 }
 
 model Match {
-    id             String             @id @default(uuid())
-    championship   Championship       @relation(fields: [championshipId], references: [id])
-    championshipId String             @map("championship_id")
-    matchPhase     String             @map("match_phase")
-    participants   MatchParticipant[]
-    winner         Player?            @relation("MatchWinner", fields: [winnerId], references: [id])
-    winnerId       String?            @map("winner_id")
-    duoWinner      Duo?               @relation("MatchDuoWinner", fields: [duoWinnerId], references: [id])
-    duoWinnerId    String?            @map("duo_winner_id")
+    id                String             @id @default(uuid())
+    championship      Championship       @relation(fields: [championshipId], references: [id])
+    championshipId    String             @map("championship_id")
+    matchPhase        String             @map("match_phase")
+    participants      MatchParticipant[]
+    winner            Player?            @relation("MatchWinner", fields: [winnerId], references: [id])
+    winnerId          String?            @map("winner_id")
+    duoWinner         Duo?               @relation("MatchDuoWinner", fields: [duoWinnerId], references: [id])
+    duoWinnerId       String?            @map("duo_winner_id")
 
     @@map("match")
 }
@@ -97,19 +96,18 @@ model ChampionshipGroup {
 }
 
 model Duo {
-    id                String             @id @default(uuid())
-    player1           Player             @relation("DuoPlayer1", fields: [player1Id], references: [id])
-    player1Id         String             @map("player_1_id")
-    player2           Player             @relation("DuoPlayer2", fields: [player2Id], references: [id])
-    player2Id         String             @map("player_2_id")
-    championship      Championship       @relation(fields: [championshipId], references: [id])
-    championshipId    String             @map("championship_id")
-    name              String
-    matchDuoWinners   Match[]            @relation("MatchDuoWinner")
-    matchParticipants MatchParticipant[] @relation("MatchParticipantDuo")
-    groupPlayers      GroupPlayer[]
-    championshipWinner  Championship?     @relation("ChampionshipDuoWinner")
-    championshipWinnerId String?         @map("championship_winner_id") @unique
+    id                   String             @id @default(uuid())
+    player1              Player             @relation("DuoPlayer1", fields: [player1Id], references: [id])
+    player1Id            String             @map("player_1_id")
+    player2              Player             @relation("DuoPlayer2", fields: [player2Id], references: [id])
+    player2Id            String             @map("player_2_id")
+    championship         Championship       @relation(fields: [championshipId], references: [id])
+    championshipId       String             @map("championship_id")
+    name                 String
+    matchDuoWinners      Match[]            @relation("MatchDuoWinner")
+    matchParticipants    MatchParticipant[] @relation("MatchParticipantDuo")
+    groupPlayers         GroupPlayer[]
+    championshipWinner   Championship[]     @relation("ChampionshipDuoWinner")
 
     @@unique([player1Id, player2Id, championshipId])
     @@map("duo")

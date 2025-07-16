@@ -16,7 +16,7 @@ services:
 
     command: yarn run start:dev
   
-  cup-database:
+  tournament-db:
     container_name: tournament-db
 
     image: postgres:17

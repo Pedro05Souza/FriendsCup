@@ -7,4 +7,4 @@ export type MatchPhase =
   | 'QUARTER_FINALS'
   | 'SEMIFINALS'
   | 'THIRD_PLACE_MATCH'
-  | 'FINAL';
+  | 'FINALS';

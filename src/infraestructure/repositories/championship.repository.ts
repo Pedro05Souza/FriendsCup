@@ -30,7 +30,6 @@ interface PlayerData {
   id: string;
   createdAt: Date;
   name: string;
-  championshipWinnerId: string | null;
   intelligence: number;
   defense: number;
   attack: number;
@@ -94,6 +93,9 @@ export type ChampionshipData = {
   duos: Array<{
     id: string;
   }>;
+  groups: Array<{
+    id: string;
+  }>;
 } & {
   id: string;
   title: string;
@@ -113,10 +115,6 @@ export class ChampionshipRepositoryImpl implements ChampionshipRepository {
         title: params.title,
         createdAt: params.createdAt.toJSDate(),
         isDuo: params.isDuo,
-      },
-      select: {
-        matches: true,
-        players: true,
       },
     });
   }
@@ -172,6 +170,11 @@ export class ChampionshipRepositoryImpl implements ChampionshipRepository {
           },
         },
         duos: {
+          select: {
+            id: true,
+          },
+        },
+        groups: {
           select: {
             id: true,
           },
@@ -445,5 +448,28 @@ export class ChampionshipRepositoryImpl implements ChampionshipRepository {
         }),
       },
     });
+  }
+
+  async getGroupsByIds(groupIds: string[]): Promise<GroupEntity[]> {
+    const groups = await this._prismaService.championshipGroup.findMany({
+      where: {
+        id: { in: groupIds },
+      },
+      include: {
+        groupPlayers: {
+          include: {
+            player: true,
+            duo: {
+              include: {
+                player1: true,
+                player2: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return groups.map(mapToGroupEntity);
   }
 }

@@ -6,7 +6,7 @@ export const matchPhaseEnum = z.enum([
   'QUARTER_FINALS',
   'SEMIFINALS',
   'THIRD_PLACE_MATCH',
-  'FINAL',
+  'FINALS',
 ]);
 
 export const tournamentNameEnum = z.enum([

@@ -80,6 +80,7 @@ export interface ChampionshipRepository {
     winnerId?: string,
     duoWinnerId?: string,
   ): Promise<void>;
+  getGroupsByIds(groupIds: string[]): Promise<GroupEntity[]>;
 }
 
 export const championshipRepositoryToken = Symbol('ChampionshipRepository');
