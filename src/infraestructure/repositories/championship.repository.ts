@@ -99,6 +99,8 @@ export type ChampionshipData = {
   title: string;
   createdAt: Date;
   isDuo: boolean;
+  winnerId?: string | null;
+  duoWinnerId?: string | null;
 };
 
 @Injectable()

@@ -12,13 +12,7 @@ export class PlayerDtoAssembler {
       defense: playerEntity.defense,
       attack: playerEntity.attack,
       mentality: playerEntity.mentality,
-      overrallRating: Math.round(
-        (playerEntity.intelligence +
-          playerEntity.defense +
-          playerEntity.attack +
-          playerEntity.mentality) /
-          4,
-      ),
+      overrallRating: playerEntity.getOverallRating(),
     };
   }
 }

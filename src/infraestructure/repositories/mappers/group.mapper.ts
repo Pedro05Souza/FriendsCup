@@ -3,10 +3,8 @@ import type {
   ChampionshipGroupData,
   GroupPlayerData,
 } from '../championship.repository';
-import type {
-  GroupDuoEntity,
-  GroupPlayerEntity,
-} from 'src/domain/entities/player.entity';
+import { GroupDuoEntity } from 'src/domain/entities/player.entity';
+import { GroupPlayerEntity } from 'src/domain/entities/player.entity';
 import { playerModelToEntity } from './player.mapper';
 
 export function mapToGroupEntity(group: ChampionshipGroupData): GroupEntity {
@@ -22,22 +20,22 @@ export function mapToGroupParticipant(
   groupPlayer: GroupPlayerData,
 ): GroupPlayerEntity | GroupDuoEntity {
   if (groupPlayer.player) {
-    return {
-      ...playerModelToEntity(groupPlayer.player),
-      points: groupPlayer.points,
-      goalDifference: groupPlayer.goalDifference,
-      groupPlayerId: groupPlayer.id,
-    };
+    return new GroupPlayerEntity(
+      playerModelToEntity(groupPlayer.player),
+      groupPlayer.points,
+      groupPlayer.goalDifference,
+      groupPlayer.id,
+    );
   } else if (groupPlayer.duo) {
-    return {
-      id: groupPlayer.duo.id,
-      player1: playerModelToEntity(groupPlayer.duo.player1),
-      player2: playerModelToEntity(groupPlayer.duo.player2),
-      points: groupPlayer.points,
-      goalDifference: groupPlayer.goalDifference,
-      groupPlayerId: groupPlayer.id,
-      name: groupPlayer.duo.name,
-    };
+    return new GroupDuoEntity(
+      groupPlayer.duo.id,
+      playerModelToEntity(groupPlayer.duo.player1),
+      playerModelToEntity(groupPlayer.duo.player2),
+      groupPlayer.duo.name,
+      groupPlayer.points,
+      groupPlayer.goalDifference,
+      groupPlayer.id,
+    );
   }
   throw new Error('Invalid Group Player Data');
 }

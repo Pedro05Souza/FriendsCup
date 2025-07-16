@@ -7,4 +7,4 @@ export const listPlayersSchemaResponse = z.object({
   hasMore: z.boolean(),
 });
 
-export class listPlayersDto extends createZodDto(listPlayersSchemaResponse) {}
+export class ListPlayersDto extends createZodDto(listPlayersSchemaResponse) {}

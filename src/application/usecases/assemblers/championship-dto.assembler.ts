@@ -32,7 +32,16 @@ export class ChampionshipDtoAssembler {
       title: championshipEntity.title,
       createdAtIso:
         championshipEntity.createdAt.toISO() ?? new Date().toISOString(),
+      championshipWinnerId: championshipEntity.winnerId,
+      championshipWinnerName: players.find(
+        (p) => p.id === championshipEntity.winnerId,
+      )?.name,
       matches: matches.map((match) => this.mapMatchToDto(match, players)),
+      players: players.map((player) => ({
+        id: player.id,
+        name: player.name,
+        overallRating: this.getOverallRatingForPlayer(player),
+      })),
     };
   }
 
@@ -71,5 +80,14 @@ export class ChampionshipDtoAssembler {
     }
 
     return participant.name ?? 'Unnamed Participant';
+  }
+
+  private getOverallRatingForPlayer(
+    player: PlayerEntity | DuoEntity,
+  ): number | undefined {
+    if ('intelligence' in player) {
+      return player.getOverallRating();
+    }
+    return undefined;
   }
 }

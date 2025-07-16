@@ -14,7 +14,7 @@ import { PlayerDto } from 'src/application/dtos/player.dto';
 import { DeletePlayerUsecase } from 'src/application/usecases/delete-player.usecase';
 import { UpdatePlayerUsecase } from 'src/application/usecases/update-player.usecase';
 import { ListPlayersUsecase } from 'src/application/usecases/list-players.usecase';
-import { ListPlayerResponse } from 'src/domain/interfaces/player.interface';
+import { ListPlayersDto } from 'src/application/dtos/list-players.dto';
 
 @Controller('players')
 export class PlayerController {
@@ -44,7 +44,7 @@ export class PlayerController {
   }
 
   @Get()
-  async list(@Query('page') page: number): Promise<ListPlayerResponse> {
+  async list(@Query('page') page: number): Promise<ListPlayersDto> {
     return this._listPlayersUsecase.listPlayers(page);
   }
 }

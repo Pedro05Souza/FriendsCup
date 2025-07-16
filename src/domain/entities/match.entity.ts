@@ -4,8 +4,8 @@ interface ParticipantGoals {
   participantId: string;
   goals: number;
   penaltyShootoutGoals?: number;
-  playerId?: string | null; // Optional field for player ID
-  duoId?: string | null; // Optional field for duo ID
+  playerId?: string | null;
+  duoId?: string | null;
 }
 
 export interface MatchEntity {

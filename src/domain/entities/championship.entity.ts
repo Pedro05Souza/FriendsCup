@@ -7,4 +7,5 @@ export interface ChampionshipEntity {
   isDuo: boolean;
   matchIds: string[];
   participantsIds: string[];
+  winnerId?: string;
 }

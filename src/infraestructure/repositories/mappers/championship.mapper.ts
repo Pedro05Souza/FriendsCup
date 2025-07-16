@@ -15,5 +15,6 @@ export function mapToChampionshipEntity(
       ...(championship.duos || []).map((duo) => duo.id),
       ...(championship.players || []).map((player) => player.id),
     ],
+    winnerId: championship.winnerId ?? championship.duoWinnerId ?? undefined,
   };
 }

@@ -25,13 +25,12 @@ export class UpdatePlayerUsecase {
       throw new BadRequestException(`Player with id ${id} does not exist.`);
     }
 
-    const updatedPlayer = {
-      ...existingPlayer,
-      ...playerDto,
-    };
+    existingPlayer.attack = playerDto.attack;
+    existingPlayer.defense = playerDto.defense;
+    existingPlayer.intelligence = playerDto.intelligence;
+    existingPlayer.mentality = playerDto.mentality;
 
-    await this._playerRepository.update(updatedPlayer);
-
-    return this._playerDtoAssembler.toDto(updatedPlayer);
+    await this._playerRepository.update(existingPlayer);
+    return this._playerDtoAssembler.toDto(existingPlayer);
   }
 }
