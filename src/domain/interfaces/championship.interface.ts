@@ -46,7 +46,7 @@ export interface CreateChampionshipParticipantParams {
 }
 
 export interface ChampionshipRepository {
-  create(params: CreateChampionshipParams): Promise<void>;
+  createChampionship(params: CreateChampionshipParams): Promise<void>;
   createDuo(params: CreateDuoParams): Promise<DuoEntity>;
   findChampionshipById(id: string): Promise<ChampionshipEntity | null>;
   bulkCreateParticipantsForChampionship(
@@ -56,6 +56,7 @@ export interface ChampionshipRepository {
     championshipId: string,
     matchPhase: MatchPhase,
     winnerId?: string,
+    duoWinnerId?: string,
   ): Promise<MatchEntity>;
   createMatchParticipant(
     matchParticipant: CreateMatchParticipant,
@@ -74,6 +75,11 @@ export interface ChampionshipRepository {
   findParticipantsByChampionshipId(
     championshipId: string,
   ): Promise<Array<DuoEntity | PlayerEntity>>;
+  updateChampionshipWinner(
+    championshipId: string,
+    winnerId?: string,
+    duoWinnerId?: string,
+  ): Promise<void>;
 }
 
 export const championshipRepositoryToken = Symbol('ChampionshipRepository');

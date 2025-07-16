@@ -17,7 +17,7 @@ export class CreateChampionshipUsecase {
   async createChampionship(
     createChampionshipDto: CreateChampionshipDto,
   ): Promise<void> {
-    await this._championshipRepository.create({
+    await this._championshipRepository.createChampionship({
       title: createChampionshipDto.title,
       createdAt: DateTime.fromISO(createChampionshipDto.createdAtIso),
       isDuo: DUO_CHAMPIOSHIPS.includes(createChampionshipDto.title),

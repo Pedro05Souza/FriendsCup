@@ -112,12 +112,21 @@ export class CreateMatchUsecase {
     const matchEntity = await this._championshipRepository.createMatch(
       championshipId,
       createMatch.matchPhase as MatchPhase,
-      winnerId,
+      isDuo ? undefined : winnerId,
+      isDuo ? winnerId : undefined,
     );
 
     await this._createMatchForParticipants(matchEntity.id, matchDetails, isDuo);
 
     if (matchDetails.matchPhase !== matchPhaseEnum.Values.GROUP_STAGE) {
+      if (matchDetails.matchPhase === matchPhaseEnum.Values.FINAL) {
+        await this._championshipRepository.updateChampionshipWinner(
+          championshipId,
+          isDuo ? undefined : winnerId,
+          isDuo ? winnerId : undefined,
+        );
+      }
+
       return;
     }
 

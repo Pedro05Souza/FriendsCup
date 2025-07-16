@@ -30,6 +30,7 @@ interface PlayerData {
   id: string;
   createdAt: Date;
   name: string;
+  championshipWinnerId: string | null;
   intelligence: number;
   defense: number;
   attack: number;
@@ -104,7 +105,7 @@ export type ChampionshipData = {
 export class ChampionshipRepositoryImpl implements ChampionshipRepository {
   constructor(private readonly _prismaService: PrismaClientService) {}
 
-  async create(params: CreateChampionshipParams): Promise<void> {
+  async createChampionship(params: CreateChampionshipParams): Promise<void> {
     await this._prismaService.championship.create({
       data: {
         title: params.title,
@@ -114,6 +115,20 @@ export class ChampionshipRepositoryImpl implements ChampionshipRepository {
       select: {
         matches: true,
         players: true,
+      },
+    });
+  }
+
+  async updateChampionshipWinner(
+    championshipId: string,
+    winnerId?: string,
+    duoWinnerId?: string,
+  ): Promise<void> {
+    await this._prismaService.championship.update({
+      where: { id: championshipId },
+      data: {
+        winnerId,
+        duoWinnerId,
       },
     });
   }
@@ -173,12 +188,14 @@ export class ChampionshipRepositoryImpl implements ChampionshipRepository {
     championshipId: string,
     matchPhase: MatchPhase,
     winnerId?: string,
+    duoWinnerId?: string,
   ): Promise<MatchEntity> {
     const match = await this._prismaService.match.create({
       data: {
         championshipId,
         matchPhase,
         winnerId,
+        duoWinnerId,
       },
       include: {
         participants: {

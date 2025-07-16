@@ -21,6 +21,8 @@ model Player {
     duoPlayer2        Duo[]              @relation("DuoPlayer2")
     matchWinner       Match[]            @relation("MatchWinner")
     matchParticipants MatchParticipant[] @relation("MatchParticipantPlayer")
+    championshipWinner Championship?     @relation("ChampionshipWinner")
+    championshipWinnerId String?         @map("championship_winner_id") @unique
 
     @@map("player")
 }
@@ -34,6 +36,10 @@ model Championship {
     duos      Duo[]
     groups    ChampionshipGroup[]
     isDuo     Boolean             @map("is_duo")
+    winner    Player?            @relation("ChampionshipWinner", fields: [winnerId], references: [id])
+    winnerId  String?            @map("winner_id") @unique
+    duoWinner Duo?               @relation("ChampionshipDuoWinner", fields: [duoWinnerId], references: [id])
+    duoWinnerId String?          @map("duo_winner_id") @unique
 
     @@map("championship")
 }
@@ -102,6 +108,8 @@ model Duo {
     matchDuoWinners   Match[]            @relation("MatchDuoWinner")
     matchParticipants MatchParticipant[] @relation("MatchParticipantDuo")
     groupPlayers      GroupPlayer[]
+    championshipWinner  Championship?     @relation("ChampionshipDuoWinner")
+    championshipWinnerId String?         @map("championship_winner_id") @unique
 
     @@unique([player1Id, player2Id, championshipId])
     @@map("duo")
