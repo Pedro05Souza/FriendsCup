@@ -15,7 +15,7 @@ export class PlayerRepositoryImpl implements PlayerRepository {
   constructor(private readonly _prismaService: PrismaClientService) {}
 
   async create(newPlayer: NewPlayerEntity): Promise<PlayerEntity> {
-    const newPlayerDb = await this._prismaService.prisma.player.create({
+    const newPlayerDb = await this._prismaService.player.create({
       data: {
         name: newPlayer.name,
         defense: newPlayer.defense,
@@ -29,13 +29,13 @@ export class PlayerRepositoryImpl implements PlayerRepository {
   }
 
   async update(player: PlayerEntity): Promise<void> {
-    await this._prismaService.prisma.player.update({
+    await this._prismaService.player.update({
       where: { id: player.id },
       data: player,
     });
   }
   async findById(id: string): Promise<PlayerEntity | null> {
-    const playerDb = await this._prismaService.prisma.player.findUnique({
+    const playerDb = await this._prismaService.player.findUnique({
       where: { id },
     });
 
@@ -43,13 +43,13 @@ export class PlayerRepositoryImpl implements PlayerRepository {
   }
 
   async deleteById(id: string): Promise<void> {
-    await this._prismaService.prisma.player.delete({
+    await this._prismaService.player.delete({
       where: { id },
     });
   }
 
   async listPlayers(page: number, limit: number): Promise<ListPlayerResponse> {
-    const playersDb = await this._prismaService.prisma.player.findMany({
+    const playersDb = await this._prismaService.player.findMany({
       skip: (page - 1) * limit,
       take: limit + 1,
     });

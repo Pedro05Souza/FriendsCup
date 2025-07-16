@@ -6,7 +6,8 @@ import { DeletePlayerUsecase } from './delete-player.usecase';
 import { UpdatePlayerUsecase } from './update-player.usecase';
 import { CreateChampionshipUsecase } from './create-championship.usecase';
 import { ListPlayersUsecase } from './list-players.usecase';
-import { CreateDuoUsecase } from './create-duo-usecase';
+import { CreateDuoUsecase } from './create-duo.usecase';
+import { CreateMatchUsecase } from './create-match.usecase';
 
 @Module({
   controllers: [],
@@ -18,6 +19,7 @@ import { CreateDuoUsecase } from './create-duo-usecase';
     CreateChampionshipUsecase,
     ListPlayersUsecase,
     CreateDuoUsecase,
+    CreateMatchUsecase,
   ],
   exports: [
     CreatePlayerUsecase,
@@ -26,6 +28,7 @@ import { CreateDuoUsecase } from './create-duo-usecase';
     CreateChampionshipUsecase,
     ListPlayersUsecase,
     CreateDuoUsecase,
+    CreateMatchUsecase,
   ],
   imports: [RepositoriesModule],
 })

@@ -23,7 +23,8 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "migrate:dev": "docker-compose exec backend npx prisma migrate dev",
     "prisma:studio": "docker-compose exec backend npx prisma studio",
-    "prisma:generate": "docker-compose exec backend npx prisma generate"
+    "prisma:generate": "docker-compose exec backend npx prisma generate",
+    "prisma:reset": "docker-compose exec backend npx prisma migrate reset --force --skip-seed"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",

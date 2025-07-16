@@ -6,8 +6,6 @@ export const playerDtoSchema = z
   .object({
     id: z.string(),
     name: z.string(),
-    goalsScored: z.number().int().min(0),
-    goalsConceded: z.number().int().min(0),
     overrallRating: z.number().int().min(0).max(100),
   })
   .extend(createPlayerDto.shape);

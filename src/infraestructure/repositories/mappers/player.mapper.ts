@@ -9,7 +9,5 @@ export function playerModelToEntity(dbPlayer: Player): PlayerEntity {
     defense: dbPlayer.defense,
     attack: dbPlayer.attack,
     mentality: dbPlayer.mentality,
-    goalsScored: dbPlayer.goalsScored,
-    goalsConceded: dbPlayer.goalsConceded,
   };
 }

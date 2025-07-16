@@ -12,8 +12,6 @@ export class PlayerDtoAssembler {
       defense: playerEntity.defense,
       attack: playerEntity.attack,
       mentality: playerEntity.mentality,
-      goalsScored: playerEntity.goalsScored,
-      goalsConceded: playerEntity.goalsConceded,
       overrallRating: Math.round(
         (playerEntity.intelligence +
           playerEntity.defense +

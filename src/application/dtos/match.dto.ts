@@ -1,16 +1,24 @@
 import { z } from 'zod';
+import { createMatchDtoSchema } from './create-match.dto';
 import { createZodDto } from 'nestjs-zod';
 import { playerDtoSchema } from './player.dto';
+import { duoDtoSchema } from './duo.dto';
 
-export const matchDtoSchema = z.object({
-  player1: playerDtoSchema,
-  player2: playerDtoSchema,
-  playerGoal1: z.number(),
-  playerGoal2: z.number(),
-  matchPhase: z.string(),
-  isPenaltyShootout: z.boolean(),
-  penaltyShootoutPlayer1: z.number().optional(),
-  penaltyShootoutPlayer2: z.number().optional(),
-});
+export const matchDtoSchema = createMatchDtoSchema
+  .extend({
+    id: z.string(),
+  })
+  .omit({
+    player1Id: true,
+    player2Id: true,
+    duo1Id: true,
+    duo2Id: true,
+  })
+  .extend({
+    player1: playerDtoSchema.optional(),
+    player2: playerDtoSchema.optional(),
+    duo1: duoDtoSchema.optional(),
+    duo2: duoDtoSchema.optional(),
+  });
 
 export class MatchDto extends createZodDto(matchDtoSchema) {}

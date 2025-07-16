@@ -14,8 +14,6 @@ model Player {
     defense       Int
     attack        Int
     mentality     Int
-    goalsScored   Int            @default(0) @map("goals_scored")
-    goalsConceded Int            @default(0) @map("goals_conceded")
     createdAt     DateTime       @default(now()) @map("created_at")
     championships Championship[]
     matches       Match[]
