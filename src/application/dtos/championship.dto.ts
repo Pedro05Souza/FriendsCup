@@ -21,8 +21,19 @@ export const championshipDtoSchema = z.object({
   id: z.string(),
   title: z.string(),
   createdAtIso: z.string().datetime(),
-  championshipWinnerId: z.string().optional(),
-  championshipWinnerName: z.string().optional(),
+  championshipWinner: z
+    .object({
+      id: z.string(),
+      name: z.string(),
+    })
+    .optional(),
+  goldenBootWinner: z
+    .object({
+      id: z.string(),
+      name: z.string(),
+      goals: z.number(),
+    })
+    .optional(),
   players: z.array(playerChampionshipDtoSchema),
   groups: z.array(championshipGroupDtoSchema).optional(),
   duos: z.array(duoDtoSchema).optional(),

@@ -16,16 +16,16 @@ export class ListPlayersUsecase {
   ) {}
 
   async listPlayers(page: number): Promise<ListPlayersDto> {
-    const ListPlayerResponse = await this._playerRepository.listPlayers(
+    const listPlayerResponse = await this._playerRepository.listPlayers(
       page,
       PAGE_SIZE,
     );
 
     return {
-      players: ListPlayerResponse.players.map((player) =>
+      players: listPlayerResponse.players.map((player) =>
         this._playerDtoAssembler.toDto(player),
       ),
-      hasMore: ListPlayerResponse.hasMore,
+      hasMore: listPlayerResponse.hasMore,
     };
   }
 }

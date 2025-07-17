@@ -40,15 +40,20 @@ export class ChampionshipDtoAssembler {
         this.getPhaseOrder(a.matchPhase) - this.getPhaseOrder(b.matchPhase),
     );
 
+    const goldenBootWinner = championshipEntity.winnerId
+      ? this.calculateGoldenBootWinner(matches, players)
+      : undefined;
+
     return {
       id: championshipEntity.id,
       title: championshipEntity.title,
       createdAtIso:
         championshipEntity.createdAt.toISO() ?? new Date().toISOString(),
-      championshipWinnerId: championshipEntity.winnerId,
-      championshipWinnerName: players.find(
-        (p) => p.id === championshipEntity.winnerId,
-      )?.name,
+      championshipWinner: this.getChampionshipWinner(
+        championshipEntity.winnerId,
+        players,
+      ),
+      goldenBootWinner: goldenBootWinner,
       players: players.map((player) => ({
         id: player.id,
         name: player.name,
@@ -56,12 +61,19 @@ export class ChampionshipDtoAssembler {
       })),
       groups: groups.map((group) => ({
         id: group.id,
-        players: group.groupPlayers.map((participant) => ({
-          id: participant.id,
-          name: this.getParticipantName(participant),
-          points: participant.points,
-          goalDifference: participant.goalDifference,
-        })),
+        players: group.groupPlayers
+          .map((participant) => ({
+            id: participant.id,
+            name: this.getParticipantName(participant),
+            points: participant.points,
+            goalDifference: participant.goalDifference,
+          }))
+          .sort(
+            (a, b) =>
+              b.points - a.points ||
+              b.goalDifference - a.goalDifference ||
+              a.name.localeCompare(b.name),
+          ),
       })),
       matches: sortedMatches.map((match) => this.mapMatchToDto(match, players)),
     };
@@ -101,13 +113,75 @@ export class ChampionshipDtoAssembler {
     };
   }
 
+  private calculateGoldenBootWinner(
+    matches: MatchEntity[],
+    players: Array<DuoEntity | PlayerEntity>,
+  ): { id: string; name: string; goals: number } | undefined {
+    const goalCounts = new Map<string, number>();
+
+    matches.forEach((match) => {
+      match.participantGoals.forEach((participantGoal) => {
+        const participantId =
+          participantGoal.playerId ??
+          participantGoal.duoId ??
+          participantGoal.participantId;
+        if (participantId) {
+          const currentGoals = goalCounts.get(participantId) ?? 0;
+          goalCounts.set(participantId, currentGoals + participantGoal.goals);
+        }
+      });
+    });
+
+    let maxGoals = 0;
+    let goldenBootWinnerId: string | undefined = undefined;
+
+    goalCounts.forEach((goals, participantId) => {
+      if (goals > maxGoals) {
+        maxGoals = goals;
+        goldenBootWinnerId = participantId;
+      }
+    });
+
+    if (goldenBootWinnerId && maxGoals > 0) {
+      const winner = players.find((p) => p.id === goldenBootWinnerId);
+      return winner
+        ? {
+            id: goldenBootWinnerId,
+            name: this.getParticipantName(winner),
+            goals: maxGoals,
+          }
+        : undefined;
+    }
+
+    return undefined;
+  }
+
+  private getChampionshipWinner(
+    winnerId: string | null | undefined,
+    players: Array<DuoEntity | PlayerEntity>,
+  ): { id: string; name: string } | undefined {
+    if (!winnerId) {
+      return undefined;
+    }
+
+    const winner = players.find((p) => p.id === winnerId);
+    if (!winner?.name) {
+      return undefined;
+    }
+
+    return {
+      id: winnerId,
+      name: winner.name,
+    };
+  }
+
   private getPhaseOrder(phase: string): number {
     const phaseOrder = {
       GROUP_STAGE: 0,
       ROUND_OF_16: 1,
       QUARTER_FINALS: 2,
       SEMIFINALS: 3,
-      THIRD_PLACE_MATCH: 4,
+      THIRD_PLACE: 4,
       FINALS: 5,
     };
     return phaseOrder[phase as keyof typeof phaseOrder] ?? 999;

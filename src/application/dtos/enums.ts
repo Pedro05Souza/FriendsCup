@@ -5,7 +5,7 @@ export const matchPhaseEnum = z.enum([
   'ROUND_OF_16',
   'QUARTER_FINALS',
   'SEMIFINALS',
-  'THIRD_PLACE_MATCH',
+  'THIRD_PLACE',
   'FINALS',
 ]);
 
