@@ -74,13 +74,20 @@ export class ChampionshipDtoAssembler {
     const participantsMap = new Map(
       players.map((participant) => [participant.id, participant]),
     );
+
+    const hasAnyPenalties = match.participantGoals.some(
+      (goal) => (goal.penaltyShootoutGoals ?? 0) > 0,
+    );
+
     return {
       id: match.id,
       matchPhase: match.matchPhase,
       participants: match.participantGoals.map((goal) => ({
         id: goal.playerId ?? goal.duoId ?? goal.participantId,
         goals: goal.goals,
-        penaltyShootoutGoals: goal.penaltyShootoutGoals,
+        penaltyShootoutGoals: hasAnyPenalties
+          ? (goal.penaltyShootoutGoals ?? 0)
+          : undefined,
         name: this.getParticipantName(
           participantsMap.get(
             (goal.playerId ?? goal.duoId ?? goal.participantId) as string,

@@ -11,6 +11,7 @@ export const matchParticipantSchema = z.object({
 export const createMatchDtoSchema = z.object({
   participants: z.array(matchParticipantSchema).length(2),
   matchPhase: matchPhaseEnum,
+  groupId: z.string().optional(),
 });
 
 export class CreateMatchDto extends createZodDto(createMatchDtoSchema) {}

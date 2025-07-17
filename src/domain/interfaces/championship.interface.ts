@@ -64,7 +64,10 @@ export interface ChampionshipRepository {
   getDuoPlayersById(duoId: string): Promise<DuoEntity | null>;
   createChampionshipGroup(championshipId: string): Promise<GroupEntity>;
   getGroupById(groupId: string): Promise<GroupEntity | null>;
-  getGroupByParticipantId(participantId: string): Promise<GroupEntity | null>;
+  getGroupByParticipantId(
+    participantId: string,
+    championshipId?: string,
+  ): Promise<GroupEntity | null>;
   createGroupParticipant(
     params: CreateGroupEntityParams,
   ): Promise<GroupPlayerEntity | GroupDuoEntity>;
@@ -81,6 +84,10 @@ export interface ChampionshipRepository {
     duoWinnerId?: string,
   ): Promise<void>;
   getGroupsByIds(groupIds: string[]): Promise<GroupEntity[]>;
+  getMatchHistoryForPlayers(
+    playerId: string,
+    opponentId: string,
+  ): Promise<MatchEntity[]>;
 }
 
 export const championshipRepositoryToken = Symbol('ChampionshipRepository');

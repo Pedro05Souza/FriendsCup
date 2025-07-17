@@ -10,7 +10,7 @@ export function mapToMatchEntity(match: MatchData): MatchEntity {
     participantGoals: match.participants.map((participant) => ({
       participantId: participant.id,
       goals: participant.goals,
-      penaltiesShootoutGoals: participant.penaltyShootoutGoals,
+      penaltyShootoutGoals: participant.penaltyShootoutGoals ?? 0,
       playerId: participant.playerId,
       duoId: participant.duoId,
     })),

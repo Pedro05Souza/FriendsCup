@@ -10,6 +10,7 @@ import { playerModelToEntity } from './player.mapper';
 export function mapToGroupEntity(group: ChampionshipGroupData): GroupEntity {
   return {
     id: group.id,
+    championshipId: group.championshipId,
     groupPlayers: group.groupPlayers.map((groupPlayer) => {
       return mapToGroupParticipant(groupPlayer);
     }),

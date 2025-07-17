@@ -3,10 +3,12 @@ import { ChampionshipDto } from 'src/application/dtos/championship.dto';
 import { CreateChampionshipDto } from 'src/application/dtos/create-championship.dto';
 import { CreateDuoDto } from 'src/application/dtos/create-duo.dto';
 import { CreateMatchDto } from 'src/application/dtos/create-match.dto';
+import { MatchHistoryDto } from 'src/application/dtos/get-match-history.dto';
 import { CreateChampionshipUsecase } from 'src/application/usecases/create-championship.usecase';
 import { CreateDuoUsecase } from 'src/application/usecases/create-duo.usecase';
 import { CreateMatchUsecase } from 'src/application/usecases/create-match.usecase';
 import { GetChampionshipUsecase } from 'src/application/usecases/get-championship.usecase';
+import { GetMatchHistoryForPlayersUsecase } from 'src/application/usecases/get-match-history-for-players.usecase';
 
 @Controller('/championships')
 export class ChampionshipController {
@@ -15,6 +17,7 @@ export class ChampionshipController {
     private readonly _createDuoUsecase: CreateDuoUsecase,
     private readonly _createMatchUsecase: CreateMatchUsecase,
     private readonly _getChampionshipUsecase: GetChampionshipUsecase,
+    private readonly _getMatchHistoryForPlayersUsecase: GetMatchHistoryForPlayersUsecase,
   ) {}
 
   @Get('/:championshipId')
@@ -47,5 +50,16 @@ export class ChampionshipController {
     @Body() createMatchDto: CreateMatchDto,
   ): Promise<void> {
     return this._createMatchUsecase.createMatch(championshipId, createMatchDto);
+  }
+
+  @Get('/match-history/:playerId/:opponentId')
+  async getMatchHistoryForPlayers(
+    @Param('playerId') playerId: string,
+    @Param('opponentId') opponentId: string,
+  ): Promise<MatchHistoryDto> {
+    return this._getMatchHistoryForPlayersUsecase.getMatchHistoryForPlayers(
+      playerId,
+      opponentId,
+    );
   }
 }

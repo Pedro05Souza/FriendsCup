@@ -289,15 +289,29 @@ export class ChampionshipRepositoryImpl implements ChampionshipRepository {
 
   async getGroupByParticipantId(
     participantId: string,
+    championshipId?: string,
   ): Promise<GroupEntity | null> {
-    const group = await this._prismaService.championshipGroup.findFirst({
-      where: {
-        groupPlayers: {
-          some: {
-            OR: [{ playerId: participantId }, { duoId: participantId }],
-          },
+    const whereClause: {
+      groupPlayers: {
+        some: {
+          OR: Array<{ playerId: string } | { duoId: string }>;
+        };
+      };
+      championshipId?: string;
+    } = {
+      groupPlayers: {
+        some: {
+          OR: [{ playerId: participantId }, { duoId: participantId }],
         },
       },
+    };
+
+    if (championshipId) {
+      whereClause.championshipId = championshipId;
+    }
+
+    const group = await this._prismaService.championshipGroup.findFirst({
+      where: whereClause,
       include: {
         groupPlayers: {
           include: {
@@ -471,5 +485,44 @@ export class ChampionshipRepositoryImpl implements ChampionshipRepository {
     });
 
     return groups.map(mapToGroupEntity);
+  }
+
+  async getMatchHistoryForPlayers(
+    playerId: string,
+    opponentId: string,
+  ): Promise<MatchEntity[]> {
+    const matches = await this._prismaService.match.findMany({
+      where: {
+        AND: [
+          {
+            participants: {
+              some: {
+                OR: [{ playerId }, { duoId: playerId }],
+              },
+            },
+          },
+          {
+            participants: {
+              some: {
+                OR: [{ playerId: opponentId }, { duoId: opponentId }],
+              },
+            },
+          },
+        ],
+      },
+      include: {
+        participants: {
+          select: {
+            id: true,
+            penaltyShootoutGoals: true,
+            goals: true,
+            playerId: true,
+            duoId: true,
+          },
+        },
+      },
+    });
+
+    return matches.map(mapToMatchEntity);
   }
 }

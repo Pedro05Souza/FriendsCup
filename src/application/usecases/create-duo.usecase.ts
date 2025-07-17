@@ -33,10 +33,6 @@ export class CreateDuoUsecase {
       throw new BadRequestException('Championship is not a duo type');
     }
 
-    if (createDuoDto.player1Id === createDuoDto.player2Id) {
-      throw new BadRequestException('Players must be different');
-    }
-
     let name = createDuoDto.name;
 
     if (createDuoDto.name === undefined) {

@@ -134,6 +134,7 @@ export class CreateMatchUsecase {
       championshipId,
       matchDetails.firstParticipantId,
       matchDetails.secondParticipantId,
+      createMatch.groupId,
     );
 
     const firstParticipantGroupStatus = await this._getGroupPlayerOrDuo(
@@ -240,14 +241,24 @@ export class CreateMatchUsecase {
     championshipId: string,
     firstParticipantId: string,
     secondParticipantId: string,
+    groupId?: string,
   ): Promise<GroupEntity> {
+    if (groupId) {
+      const group = await this._championshipRepository.getGroupById(groupId);
+      if (group === null) {
+        throw new BadRequestException(`Group with ID ${groupId} not found`);
+      }
+      return group;
+    }
     const firstParticipantGroup =
       await this._championshipRepository.getGroupByParticipantId(
         firstParticipantId,
+        championshipId,
       );
     const secondParticipantGroup =
       await this._championshipRepository.getGroupByParticipantId(
         secondParticipantId,
+        championshipId,
       );
 
     if (

@@ -23,6 +23,7 @@ export class PlayerController {
     private readonly _deletePlayerUsecase: DeletePlayerUsecase,
     private readonly _updatePlayerUsecase: UpdatePlayerUsecase,
     private readonly _listPlayersUsecase: ListPlayersUsecase,
+    
   ) {}
 
   @Post()
