@@ -11,6 +11,7 @@ import { CreateMatchUsecase } from './create-match.usecase';
 import { ChampionshipDtoAssembler } from './assemblers/championship-dto.assembler';
 import { GetChampionshipUsecase } from './get-championship.usecase';
 import { GetMatchHistoryForPlayersUsecase } from './get-match-history-for-players.usecase';
+import { GetChampionshipWinnersUsecase } from './get-championship-winners.usecase';
 
 @Module({
   controllers: [],
@@ -27,6 +28,7 @@ import { GetMatchHistoryForPlayersUsecase } from './get-match-history-for-player
     ChampionshipDtoAssembler,
     GetChampionshipUsecase,
     GetMatchHistoryForPlayersUsecase,
+    GetChampionshipWinnersUsecase,
   ],
   exports: [
     CreatePlayerUsecase,
@@ -38,6 +40,7 @@ import { GetMatchHistoryForPlayersUsecase } from './get-match-history-for-player
     CreateMatchUsecase,
     GetChampionshipUsecase,
     GetMatchHistoryForPlayersUsecase,
+    GetChampionshipWinnersUsecase,
   ],
   imports: [RepositoriesModule],
 })

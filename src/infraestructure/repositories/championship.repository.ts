@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   ChampionshipRepository,
+  ChampionshipWinners,
   CreateChampionshipParams,
   CreateChampionshipParticipantParams,
   CreateDuoParams,
@@ -524,5 +525,81 @@ export class ChampionshipRepositoryImpl implements ChampionshipRepository {
     });
 
     return matches.map(mapToMatchEntity);
+  }
+
+  async getChampionshipWinners(): Promise<ChampionshipWinners[]> {
+    const championships = await this._prismaService.championship.findMany({
+      where: {
+        OR: [{ winnerId: { not: null } }, { duoWinnerId: { not: null } }],
+      },
+      include: {
+        winner: true,
+        duoWinner: {
+          include: {
+            player1: true,
+            player2: true,
+          },
+        },
+      },
+    });
+
+    const playerWinsMap = new Map<
+      string,
+      {
+        playerName: string;
+        championships: Map<string, number>;
+      }
+    >();
+
+    championships.forEach((championship) => {
+      if (championship.winner) {
+        const playerId = championship.winner.id;
+        if (!playerWinsMap.has(playerId)) {
+          playerWinsMap.set(playerId, {
+            playerName: championship.winner.name,
+            championships: new Map(),
+          });
+        }
+
+        const playerData = playerWinsMap.get(playerId)!;
+        const currentCount =
+          playerData.championships.get(championship.title) ?? 0;
+        playerData.championships.set(championship.title, currentCount + 1);
+      }
+
+      if (championship.duoWinner) {
+        const uniquePlayers =
+          championship.duoWinner.player1.id ===
+          championship.duoWinner.player2.id
+            ? [championship.duoWinner.player1]
+            : [championship.duoWinner.player1, championship.duoWinner.player2];
+
+        uniquePlayers.forEach((player) => {
+          const playerId = player.id;
+          if (!playerWinsMap.has(playerId)) {
+            playerWinsMap.set(playerId, {
+              playerName: player.name,
+              championships: new Map(),
+            });
+          }
+
+          const playerData = playerWinsMap.get(playerId)!;
+          const currentCount =
+            playerData.championships.get(championship.title) ?? 0;
+          playerData.championships.set(championship.title, currentCount + 1);
+        });
+      }
+    });
+
+    return Array.from(playerWinsMap.entries()).map(([playerId, data]) => ({
+      playerId,
+      playerName: data.playerName,
+      championships: Array.from(data.championships.entries()).map(
+        ([championshipName, timesWon]) => ({
+          championshipName,
+          timesWon,
+        }),
+      ),
+    }));
   }
 }

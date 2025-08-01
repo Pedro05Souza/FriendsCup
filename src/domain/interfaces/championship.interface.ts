@@ -45,6 +45,17 @@ export interface CreateChampionshipParticipantParams {
   duoIds?: string[];
 }
 
+export interface ChampionshipWinnersInfo {
+  championshipName: string;
+  timesWon: number;
+}
+
+export interface ChampionshipWinners {
+  playerId: string;
+  playerName: string;
+  championships: ChampionshipWinnersInfo[];
+}
+
 export interface ChampionshipRepository {
   createChampionship(params: CreateChampionshipParams): Promise<void>;
   createDuo(params: CreateDuoParams): Promise<DuoEntity>;
@@ -88,6 +99,7 @@ export interface ChampionshipRepository {
     playerId: string,
     opponentId: string,
   ): Promise<MatchEntity[]>;
+  getChampionshipWinners(): Promise<ChampionshipWinners[]>;
 }
 
 export const championshipRepositoryToken = Symbol('ChampionshipRepository');
