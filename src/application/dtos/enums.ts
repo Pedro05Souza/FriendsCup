@@ -22,3 +22,6 @@ export const tournamentNameEnum = z.enum([
   'COPA DEIVES',
   'COPA POLAR',
 ]);
+
+export type MatchPhase = z.infer<typeof matchPhaseEnum>;
+export type TournamentName = z.infer<typeof tournamentNameEnum>;
