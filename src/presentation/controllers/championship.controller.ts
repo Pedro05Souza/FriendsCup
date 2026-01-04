@@ -9,6 +9,10 @@ import { CreateDuoUsecase } from 'src/application/usecases/create-duo.usecase';
 import { CreateMatchUsecase } from 'src/application/usecases/create-match.usecase';
 import { GetChampionshipWinnersUsecase } from 'src/application/usecases/get-championship-winners.usecase';
 import { GetChampionshipUsecase } from 'src/application/usecases/get-championship.usecase';
+import {
+  RecapData,
+  RecapUsecase,
+} from 'src/application/usecases/recap.usecase';
 
 @Controller('/championships')
 export class ChampionshipController {
@@ -18,6 +22,7 @@ export class ChampionshipController {
     private readonly _createMatchUsecase: CreateMatchUsecase,
     private readonly _getChampionshipUsecase: GetChampionshipUsecase,
     private readonly _getChampionshipWinnersUsecase: GetChampionshipWinnersUsecase,
+    private readonly _recapUsecase: RecapUsecase,
   ) {}
 
   @Get('/winners')
@@ -55,5 +60,10 @@ export class ChampionshipController {
     @Body() createMatchDto: CreateMatchDto,
   ): Promise<void> {
     return this._createMatchUsecase.createMatch(championshipId, createMatchDto);
+  }
+
+  @Get('/recap/:year')
+  async getRecap(@Param('year') year: string): Promise<RecapData> {
+    return this._recapUsecase.getRecap(year);
   }
 }

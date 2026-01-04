@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { DateTime } from 'luxon';
 import {
   ChampionshipRepository,
   ChampionshipWinners,
@@ -9,7 +10,10 @@ import {
   CreateMatchParticipant,
 } from '../../domain/interfaces/championship.interface';
 import { mapToChampionshipEntity } from './mappers/championship.mapper';
-import { ChampionshipEntity } from 'src/domain/entities/championship.entity';
+import {
+  ChampionshipEntity,
+  CompleteChampionshipEntity,
+} from 'src/domain/entities/championship.entity';
 import { playerModelToEntity } from './mappers/player.mapper';
 import { PrismaClientService } from 'src/application/services/prisma-client';
 import {
@@ -600,6 +604,61 @@ export class ChampionshipRepositoryImpl implements ChampionshipRepository {
           timesWon,
         }),
       ),
+    }));
+  }
+
+  async getAllChampionshipsByYear(
+    year: string,
+  ): Promise<CompleteChampionshipEntity[]> {
+    const startDate = new Date(`${year}-01-01T00:00:00.000Z`);
+    const endDate = new Date(`${year}-12-31T23:59:59.999Z`);
+
+    const championships = await this._prismaService.championship.findMany({
+      where: {
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      include: {
+        matches: {
+          include: {
+            participants: {
+              select: {
+                id: true,
+                penaltyShootoutGoals: true,
+                goals: true,
+                playerId: true,
+                duoId: true,
+              },
+            },
+          },
+        },
+        players: true,
+        duos: {
+          include: {
+            player1: true,
+            player2: true,
+          },
+        },
+      },
+    });
+
+    return championships.map((championship) => ({
+      id: championship.id,
+      title: championship.title,
+      createdAt: DateTime.fromJSDate(championship.createdAt),
+      isDuo: championship.isDuo,
+      winnerId: championship.winnerId ?? championship.duoWinnerId ?? undefined,
+      matches: championship.matches.map(mapToMatchEntity),
+      participants: championship.isDuo
+        ? championship.duos.map((duo) => ({
+            id: duo.id,
+            player1: playerModelToEntity(duo.player1),
+            player2: playerModelToEntity(duo.player2),
+            name: duo.name,
+          }))
+        : championship.players.map((player) => playerModelToEntity(player)),
     }));
   }
 }

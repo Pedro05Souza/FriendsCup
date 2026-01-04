@@ -1,6 +1,6 @@
 import type { MatchPhase } from '../constants';
 
-interface ParticipantGoals {
+export interface ParticipantGoals {
   participantId: string;
   goals: number;
   penaltyShootoutGoals?: number;

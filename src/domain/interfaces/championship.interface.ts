@@ -1,5 +1,8 @@
 import type { DateTime } from 'luxon';
-import type { ChampionshipEntity } from '../entities/championship.entity';
+import type {
+  ChampionshipEntity,
+  CompleteChampionshipEntity,
+} from '../entities/championship.entity';
 import type { MatchPhase } from '../constants';
 import type {
   DuoEntity,
@@ -100,6 +103,9 @@ export interface ChampionshipRepository {
     opponentId: string,
   ): Promise<MatchEntity[]>;
   getChampionshipWinners(): Promise<ChampionshipWinners[]>;
+  getAllChampionshipsByYear(
+    year: string,
+  ): Promise<CompleteChampionshipEntity[]>;
 }
 
 export const championshipRepositoryToken = Symbol('ChampionshipRepository');

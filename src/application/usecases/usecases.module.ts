@@ -12,6 +12,7 @@ import { ChampionshipDtoAssembler } from './assemblers/championship-dto.assemble
 import { GetChampionshipUsecase } from './get-championship.usecase';
 import { GetMatchHistoryForPlayersUsecase } from './get-match-history-for-players.usecase';
 import { GetChampionshipWinnersUsecase } from './get-championship-winners.usecase';
+import { RecapUsecase } from './recap.usecase';
 
 @Module({
   controllers: [],
@@ -29,6 +30,7 @@ import { GetChampionshipWinnersUsecase } from './get-championship-winners.usecas
     GetChampionshipUsecase,
     GetMatchHistoryForPlayersUsecase,
     GetChampionshipWinnersUsecase,
+    RecapUsecase,
   ],
   exports: [
     CreatePlayerUsecase,
@@ -41,6 +43,7 @@ import { GetChampionshipWinnersUsecase } from './get-championship-winners.usecas
     GetChampionshipUsecase,
     GetMatchHistoryForPlayersUsecase,
     GetChampionshipWinnersUsecase,
+    RecapUsecase,
   ],
   imports: [RepositoriesModule],
 })
