@@ -106,6 +106,9 @@ export interface ChampionshipRepository {
   getAllChampionshipsByYear(
     year: string,
   ): Promise<CompleteChampionshipEntity[]>;
+  getAllMatchesWonByPlayerId(playerId: string): Promise<MatchEntity[]>;
+  getAllMatchesLostByPlayerId(playerId: string): Promise<MatchEntity[]>;
+  getAllMatchesDrawnByPlayerId(playerId: string): Promise<MatchEntity[]>;
 }
 
 export const championshipRepositoryToken = Symbol('ChampionshipRepository');

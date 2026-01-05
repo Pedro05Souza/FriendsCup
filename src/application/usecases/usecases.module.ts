@@ -13,6 +13,7 @@ import { GetChampionshipUsecase } from './get-championship.usecase';
 import { GetMatchHistoryForPlayersUsecase } from './get-match-history-for-players.usecase';
 import { GetChampionshipWinnersUsecase } from './get-championship-winners.usecase';
 import { RecapUsecase } from './recap.usecase';
+import { RetrospectUsecase } from './retrospect.usecase';
 
 @Module({
   controllers: [],
@@ -31,6 +32,7 @@ import { RecapUsecase } from './recap.usecase';
     GetMatchHistoryForPlayersUsecase,
     GetChampionshipWinnersUsecase,
     RecapUsecase,
+    RetrospectUsecase,
   ],
   exports: [
     CreatePlayerUsecase,
@@ -44,6 +46,7 @@ import { RecapUsecase } from './recap.usecase';
     GetMatchHistoryForPlayersUsecase,
     GetChampionshipWinnersUsecase,
     RecapUsecase,
+    RetrospectUsecase,
   ],
   imports: [RepositoriesModule],
 })

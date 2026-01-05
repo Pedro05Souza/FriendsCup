@@ -661,4 +661,142 @@ export class ChampionshipRepositoryImpl implements ChampionshipRepository {
         : championship.players.map((player) => playerModelToEntity(player)),
     }));
   }
+
+  async getAllMatchesWonByPlayerId(playerId: string): Promise<MatchEntity[]> {
+    const matches = await this._prismaService.match.findMany({
+      where: {
+        OR: [
+          { winnerId: playerId },
+          {
+            AND: [
+              { duoWinnerId: { not: null } },
+              {
+                duoWinner: {
+                  OR: [{ player1Id: playerId }, { player2Id: playerId }],
+                },
+              },
+            ],
+          },
+        ],
+      },
+      include: {
+        participants: {
+          where: {
+            OR: [
+              { playerId: playerId },
+              {
+                duo: {
+                  OR: [{ player1Id: playerId }, { player2Id: playerId }],
+                },
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    return matches.map(mapToMatchEntity);
+  }
+
+  async getAllMatchesLostByPlayerId(playerId: string): Promise<MatchEntity[]> {
+    const matches = await this._prismaService.match.findMany({
+      where: {
+        // Player participated (solo or duo)
+        participants: {
+          some: {
+            OR: [
+              { playerId },
+              {
+                duo: {
+                  OR: [{ player1Id: playerId }, { player2Id: playerId }],
+                },
+              },
+            ],
+          },
+        },
+
+        // Player lost (solo OR duo)
+        OR: [
+          // ---- SOLO LOSS ----
+          {
+            winnerId: {
+              not: playerId,
+            },
+            duoWinnerId: null,
+          },
+
+          // ---- DUO LOSS ----
+          {
+            duoWinnerId: {
+              not: null,
+            },
+            duoWinner: {
+              AND: [
+                { player1Id: { not: playerId } },
+                { player2Id: { not: playerId } },
+              ],
+            },
+          },
+        ],
+      },
+
+      include: {
+        participants: {
+          where: {
+            OR: [
+              { playerId },
+              {
+                duo: {
+                  OR: [{ player1Id: playerId }, { player2Id: playerId }],
+                },
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    return matches.map(mapToMatchEntity);
+  }
+
+  async getAllMatchesDrawnByPlayerId(playerId: string): Promise<MatchEntity[]> {
+    const matches = await this._prismaService.match.findMany({
+      where: {
+        participants: {
+          some: {
+            OR: [
+              { playerId: playerId },
+              {
+                duo: {
+                  OR: [{ player1Id: playerId }, { player2Id: playerId }],
+                },
+              },
+            ],
+          },
+        },
+        winnerId: null,
+        duoWinnerId: null,
+      },
+      include: {
+        participants: {
+          where: {
+            OR: [
+              { playerId: playerId },
+              {
+                duo: {
+                  OR: [{ player1Id: playerId }, { player2Id: playerId }],
+                },
+              },
+            ],
+          },
+          include: {
+            player: true,
+            duo: true,
+          },
+        },
+      },
+    });
+
+    return matches.map(mapToMatchEntity);
+  }
 }

@@ -15,6 +15,10 @@ import { DeletePlayerUsecase } from 'src/application/usecases/delete-player.usec
 import { UpdatePlayerUsecase } from 'src/application/usecases/update-player.usecase';
 import { ListPlayersUsecase } from 'src/application/usecases/list-players.usecase';
 import { ListPlayersDto } from 'src/application/dtos/list-players.dto';
+import {
+  RetrospectData,
+  RetrospectUsecase,
+} from 'src/application/usecases/retrospect.usecase';
 
 @Controller('players')
 export class PlayerController {
@@ -23,6 +27,7 @@ export class PlayerController {
     private readonly _deletePlayerUsecase: DeletePlayerUsecase,
     private readonly _updatePlayerUsecase: UpdatePlayerUsecase,
     private readonly _listPlayersUsecase: ListPlayersUsecase,
+    private readonly _retrospectUsecase: RetrospectUsecase,
   ) {}
 
   @Post()
@@ -46,5 +51,10 @@ export class PlayerController {
   @Get()
   async list(@Query('page') page: number): Promise<ListPlayersDto> {
     return this._listPlayersUsecase.listPlayers(page);
+  }
+
+  @Get('/:id/retrospect')
+  async getRetrospect(@Param('id') id: string): Promise<RetrospectData> {
+    return this._retrospectUsecase.getRetrospectForPlayer(id);
   }
 }
