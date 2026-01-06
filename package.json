@@ -25,8 +25,8 @@
     "prisma:studio": "docker-compose exec backend npx prisma studio",
     "prisma:generate": "docker-compose exec backend npx prisma generate",
     "prisma:reset": "docker-compose exec backend npx prisma migrate reset --force --skip-seed",
-    "db:dump": "docker compose exec cup-database pg_dump -U postgres -d tournament > dump.sql",
-    "db:restore": "docker cp dump.sql tournament-db:/tmp/dump.sql && docker compose exec cup-database psql -U postgres -d tournament -f /tmp/dump.sql"
+    "db:dump": "bash scripts/db-dump.sh",
+    "db:restore": "docker compose exec -T tournament-db psql -U postgres -d tournament < dumps/dump.sql"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",

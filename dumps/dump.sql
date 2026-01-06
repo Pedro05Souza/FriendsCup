@@ -18,16 +18,14 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- Name: public; Type: SCHEMA; Schema: -; Owner: postgres
+-- Name: public; Type: SCHEMA; Schema: -; Owner: -
 --
 
 -- *not* creating schema, since initdb creates it
 
 
-ALTER SCHEMA public OWNER TO postgres;
-
 --
--- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: postgres
+-- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: -
 --
 
 COMMENT ON SCHEMA public IS '';
@@ -38,7 +36,7 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- Name: _ChampionshipToPlayer; Type: TABLE; Schema: public; Owner: postgres
+-- Name: _ChampionshipToPlayer; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."_ChampionshipToPlayer" (
@@ -47,10 +45,8 @@ CREATE TABLE public."_ChampionshipToPlayer" (
 );
 
 
-ALTER TABLE public."_ChampionshipToPlayer" OWNER TO postgres;
-
 --
--- Name: _prisma_migrations; Type: TABLE; Schema: public; Owner: postgres
+-- Name: _prisma_migrations; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public._prisma_migrations (
@@ -65,10 +61,8 @@ CREATE TABLE public._prisma_migrations (
 );
 
 
-ALTER TABLE public._prisma_migrations OWNER TO postgres;
-
 --
--- Name: championship; Type: TABLE; Schema: public; Owner: postgres
+-- Name: championship; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.championship (
@@ -81,10 +75,8 @@ CREATE TABLE public.championship (
 );
 
 
-ALTER TABLE public.championship OWNER TO postgres;
-
 --
--- Name: championship_group; Type: TABLE; Schema: public; Owner: postgres
+-- Name: championship_group; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.championship_group (
@@ -94,10 +86,8 @@ CREATE TABLE public.championship_group (
 );
 
 
-ALTER TABLE public.championship_group OWNER TO postgres;
-
 --
--- Name: duo; Type: TABLE; Schema: public; Owner: postgres
+-- Name: duo; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.duo (
@@ -109,10 +99,8 @@ CREATE TABLE public.duo (
 );
 
 
-ALTER TABLE public.duo OWNER TO postgres;
-
 --
--- Name: group_player; Type: TABLE; Schema: public; Owner: postgres
+-- Name: group_player; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.group_player (
@@ -125,10 +113,8 @@ CREATE TABLE public.group_player (
 );
 
 
-ALTER TABLE public.group_player OWNER TO postgres;
-
 --
--- Name: match; Type: TABLE; Schema: public; Owner: postgres
+-- Name: match; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.match (
@@ -140,10 +126,8 @@ CREATE TABLE public.match (
 );
 
 
-ALTER TABLE public.match OWNER TO postgres;
-
 --
--- Name: match_participant; Type: TABLE; Schema: public; Owner: postgres
+-- Name: match_participant; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.match_participant (
@@ -156,10 +140,8 @@ CREATE TABLE public.match_participant (
 );
 
 
-ALTER TABLE public.match_participant OWNER TO postgres;
-
 --
--- Name: player; Type: TABLE; Schema: public; Owner: postgres
+-- Name: player; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.player (
@@ -173,10 +155,8 @@ CREATE TABLE public.player (
 );
 
 
-ALTER TABLE public.player OWNER TO postgres;
-
 --
--- Data for Name: _ChampionshipToPlayer; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: _ChampionshipToPlayer; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public."_ChampionshipToPlayer" ("A", "B") FROM stdin;
@@ -215,11 +195,21 @@ d7b908d8-29c0-45fa-a6c6-9dbf78021640	d1ec07db-b934-4d4d-b393-f310e7fa1e64
 913841a8-5a1c-4cce-a018-0d9d6e0d2ea0	47588633-59e2-4fcb-884b-a005d3f213f1
 913841a8-5a1c-4cce-a018-0d9d6e0d2ea0	d1ec07db-b934-4d4d-b393-f310e7fa1e64
 913841a8-5a1c-4cce-a018-0d9d6e0d2ea0	8c09e87c-a821-49b7-8fac-2d777297312f
+3c73304c-5381-467b-ac2a-6bf1c5fa2c8f	feaf1932-499c-4124-b0cf-cd634ff0dfa1
+3c73304c-5381-467b-ac2a-6bf1c5fa2c8f	8c09e87c-a821-49b7-8fac-2d777297312f
+3c73304c-5381-467b-ac2a-6bf1c5fa2c8f	47588633-59e2-4fcb-884b-a005d3f213f1
+3c73304c-5381-467b-ac2a-6bf1c5fa2c8f	4871521b-e3df-4a1c-a4be-dd5c8374105f
+3c73304c-5381-467b-ac2a-6bf1c5fa2c8f	d1ec07db-b934-4d4d-b393-f310e7fa1e64
+3c73304c-5381-467b-ac2a-6bf1c5fa2c8f	dcc024b6-29d4-4050-a28c-61c2cea71088
+69551347-66d3-49de-85b2-a5278180570b	d1ec07db-b934-4d4d-b393-f310e7fa1e64
+69551347-66d3-49de-85b2-a5278180570b	dcc024b6-29d4-4050-a28c-61c2cea71088
+69551347-66d3-49de-85b2-a5278180570b	47588633-59e2-4fcb-884b-a005d3f213f1
+69551347-66d3-49de-85b2-a5278180570b	8c09e87c-a821-49b7-8fac-2d777297312f
 \.
 
 
 --
--- Data for Name: _prisma_migrations; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: _prisma_migrations; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public._prisma_migrations (id, checksum, finished_at, migration_name, logs, rolled_back_at, started_at, applied_steps_count) FROM stdin;
@@ -228,7 +218,7 @@ COPY public._prisma_migrations (id, checksum, finished_at, migration_name, logs,
 
 
 --
--- Data for Name: championship; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: championship; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.championship (id, title, created_at, is_duo, winner_id, duo_winner_id) FROM stdin;
@@ -239,11 +229,13 @@ d7b908d8-29c0-45fa-a6c6-9dbf78021640	COPA NABOR	2024-04-07 00:00:00	f	8c09e87c-a
 453bccd3-3829-46be-a7be-c8c88a556936	COPA DEIVES	2024-12-14 00:00:00	f	47588633-59e2-4fcb-884b-a005d3f213f1	\N
 f4cf3126-d7aa-48bc-92bc-e2d005383cb7	COPA POLAR	2025-06-28 00:00:00	t	\N	6f00b648-c386-4770-a4b9-d3cb09018b07
 913841a8-5a1c-4cce-a018-0d9d6e0d2ea0	COPA CHILELA	2025-07-11 00:00:00	f	47588633-59e2-4fcb-884b-a005d3f213f1	\N
+3c73304c-5381-467b-ac2a-6bf1c5fa2c8f	COPA CHILELA	2023-01-01 00:00:00	f	8c09e87c-a821-49b7-8fac-2d777297312f	\N
+69551347-66d3-49de-85b2-a5278180570b	COPA CHILELA	2023-12-15 00:00:00	f	8c09e87c-a821-49b7-8fac-2d777297312f	\N
 \.
 
 
 --
--- Data for Name: championship_group; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: championship_group; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.championship_group (id, championship_id, created_at) FROM stdin;
@@ -259,7 +251,7 @@ c225b7a9-24d1-4849-bba9-b025c56cfa70	f4cf3126-d7aa-48bc-92bc-e2d005383cb7	2025-0
 
 
 --
--- Data for Name: duo; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: duo; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.duo (id, player_1_id, player_2_id, championship_id, name) FROM stdin;
@@ -274,7 +266,7 @@ fba92912-7248-4caf-88f0-344ef71c336f	d86ef6af-9c80-4df7-bbf0-4f11590cd8ee	dcc024
 
 
 --
--- Data for Name: group_player; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: group_player; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.group_player (id, player_id, duo_id, championship_group_id, points, goal_difference) FROM stdin;
@@ -310,7 +302,7 @@ c081ffb2-efba-476c-b8cc-728936d52c03	4345d5cb-cd60-4c72-b5ec-55a6d6a7e85e	\N	05b
 
 
 --
--- Data for Name: match; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: match; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.match (id, championship_id, match_phase, winner_id, duo_winner_id) FROM stdin;
@@ -363,11 +355,19 @@ c9beda63-3d9a-419a-9d35-b59f8303e155	913841a8-5a1c-4cce-a018-0d9d6e0d2ea0	SEMIFI
 906ae939-02fb-4ad8-a13c-6915c048ffd4	913841a8-5a1c-4cce-a018-0d9d6e0d2ea0	THIRD_PLACE	8c09e87c-a821-49b7-8fac-2d777297312f	\N
 6de395d6-6826-49f7-a342-8641f5ae2251	8e41acb5-84fa-4c55-bc60-20ebf8a15544	GROUP_STAGE	\N	\N
 d49f10c0-8c2f-4fb1-bb60-4da3ad9c4ca0	8e41acb5-84fa-4c55-bc60-20ebf8a15544	GROUP_STAGE	feaf1932-499c-4124-b0cf-cd634ff0dfa1	\N
+82563659-4055-4636-890c-cb3dc1b7dfb6	3c73304c-5381-467b-ac2a-6bf1c5fa2c8f	FINALS	8c09e87c-a821-49b7-8fac-2d777297312f	\N
+88f1ea7d-c896-4354-9c3f-5791f29ceab0	3c73304c-5381-467b-ac2a-6bf1c5fa2c8f	QUARTER_FINALS	47588633-59e2-4fcb-884b-a005d3f213f1	\N
+3e7d2b5d-e281-4345-a0f6-56e0a812dfb0	3c73304c-5381-467b-ac2a-6bf1c5fa2c8f	QUARTER_FINALS	d1ec07db-b934-4d4d-b393-f310e7fa1e64	\N
+587106ba-d110-4584-abd5-19fbdbd93d00	3c73304c-5381-467b-ac2a-6bf1c5fa2c8f	SEMIFINALS	feaf1932-499c-4124-b0cf-cd634ff0dfa1	\N
+613bc21d-45d8-4f10-a51e-420c73f5a5c9	3c73304c-5381-467b-ac2a-6bf1c5fa2c8f	SEMIFINALS	8c09e87c-a821-49b7-8fac-2d777297312f	\N
+3f925465-f826-4a0c-b4b3-38489be36549	69551347-66d3-49de-85b2-a5278180570b	QUARTER_FINALS	dcc024b6-29d4-4050-a28c-61c2cea71088	\N
+9fd8cfaf-3847-4a84-b8b6-c08279806c04	69551347-66d3-49de-85b2-a5278180570b	SEMIFINALS	47588633-59e2-4fcb-884b-a005d3f213f1	\N
+024ff1e2-8138-40eb-b00d-73bb8aa78d90	69551347-66d3-49de-85b2-a5278180570b	FINALS	8c09e87c-a821-49b7-8fac-2d777297312f	\N
 \.
 
 
 --
--- Data for Name: match_participant; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: match_participant; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.match_participant (id, match_id, player_id, duo_id, goals, penalty_shootout_goals) FROM stdin;
@@ -469,11 +469,27 @@ c342eb07-7fde-4a89-a0d8-fdfd3fd2c83c	906ae939-02fb-4ad8-a13c-6915c048ffd4	dcc024
 0f82054b-0704-4c93-bec9-55c32d0502b4	6de395d6-6826-49f7-a342-8641f5ae2251	feaf1932-499c-4124-b0cf-cd634ff0dfa1	\N	2	0
 77809c54-a106-4786-bf1a-aa2b8fd36f1f	d49f10c0-8c2f-4fb1-bb60-4da3ad9c4ca0	feaf1932-499c-4124-b0cf-cd634ff0dfa1	\N	3	0
 be4284dd-f9ef-4d59-8615-4cb279726ef8	d49f10c0-8c2f-4fb1-bb60-4da3ad9c4ca0	dcc024b6-29d4-4050-a28c-61c2cea71088	\N	2	0
+942315f3-ec0a-4d23-84eb-453ccfca8952	82563659-4055-4636-890c-cb3dc1b7dfb6	8c09e87c-a821-49b7-8fac-2d777297312f	\N	4	0
+887fedcf-ef2c-4e6d-b75b-23e28034ca90	82563659-4055-4636-890c-cb3dc1b7dfb6	feaf1932-499c-4124-b0cf-cd634ff0dfa1	\N	0	0
+8ab4b8d2-cf7f-4603-bbee-141357c59218	88f1ea7d-c896-4354-9c3f-5791f29ceab0	47588633-59e2-4fcb-884b-a005d3f213f1	\N	3	0
+313628f2-295f-4de9-bff2-d042cd8feeca	88f1ea7d-c896-4354-9c3f-5791f29ceab0	4871521b-e3df-4a1c-a4be-dd5c8374105f	\N	2	0
+541d04b4-4df6-419d-845c-2b3c3cdd37e7	3e7d2b5d-e281-4345-a0f6-56e0a812dfb0	d1ec07db-b934-4d4d-b393-f310e7fa1e64	\N	1	0
+d635391e-5baf-4926-9841-8a2435d4e50a	3e7d2b5d-e281-4345-a0f6-56e0a812dfb0	dcc024b6-29d4-4050-a28c-61c2cea71088	\N	0	0
+a00548e4-5f7c-4e72-bff9-53503e8f64dc	587106ba-d110-4584-abd5-19fbdbd93d00	feaf1932-499c-4124-b0cf-cd634ff0dfa1	\N	1	0
+043f1794-5bd1-45dd-8c72-586ebb78f166	587106ba-d110-4584-abd5-19fbdbd93d00	47588633-59e2-4fcb-884b-a005d3f213f1	\N	0	0
+fad61241-4897-44e8-a5d6-99719abb8f1f	613bc21d-45d8-4f10-a51e-420c73f5a5c9	8c09e87c-a821-49b7-8fac-2d777297312f	\N	4	0
+b5eb979c-bea9-42dd-8d33-7422f28f66a0	613bc21d-45d8-4f10-a51e-420c73f5a5c9	d1ec07db-b934-4d4d-b393-f310e7fa1e64	\N	0	0
+966ca48d-aa24-4dd1-97f6-f9753d0dec26	3f925465-f826-4a0c-b4b3-38489be36549	dcc024b6-29d4-4050-a28c-61c2cea71088	\N	1	0
+9f119852-24a8-4435-98d9-450d58fa2c2d	3f925465-f826-4a0c-b4b3-38489be36549	d1ec07db-b934-4d4d-b393-f310e7fa1e64	\N	0	0
+420486f0-d95f-4b96-9b19-5aaf8aca98e4	9fd8cfaf-3847-4a84-b8b6-c08279806c04	47588633-59e2-4fcb-884b-a005d3f213f1	\N	3	0
+36d38d36-0569-45b2-884d-7acd1a1d6b17	9fd8cfaf-3847-4a84-b8b6-c08279806c04	dcc024b6-29d4-4050-a28c-61c2cea71088	\N	0	0
+4560ff52-38ab-4943-a8c1-faf9dc374818	024ff1e2-8138-40eb-b00d-73bb8aa78d90	8c09e87c-a821-49b7-8fac-2d777297312f	\N	1	0
+b75d77cd-f8fe-4e65-aa44-c1ab16f064bc	024ff1e2-8138-40eb-b00d-73bb8aa78d90	47588633-59e2-4fcb-884b-a005d3f213f1	\N	0	0
 \.
 
 
 --
--- Data for Name: player; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: player; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.player (id, name, intelligence, defense, attack, mentality, created_at) FROM stdin;
@@ -486,11 +502,12 @@ d1ec07db-b934-4d4d-b393-f310e7fa1e64	Bauer	82	76	74	79	2025-07-16 20:48:28.706
 dcc024b6-29d4-4050-a28c-61c2cea71088	Stertz	88	84	84	91	2025-07-16 20:49:13.396
 8c09e87c-a821-49b7-8fac-2d777297312f	Ferreira	88	91	97	90	2025-07-16 20:51:28.931
 92b8270c-f86a-48bc-88d3-837826b85ad0	Lucas Bauer	88	87	85	86	2025-07-17 01:33:36.379
+4871521b-e3df-4a1c-a4be-dd5c8374105f	Lucas Daudt	74	78	76	76	2026-01-06 00:06:38.937
 \.
 
 
 --
--- Name: _ChampionshipToPlayer _ChampionshipToPlayer_AB_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: _ChampionshipToPlayer _ChampionshipToPlayer_AB_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."_ChampionshipToPlayer"
@@ -498,7 +515,7 @@ ALTER TABLE ONLY public."_ChampionshipToPlayer"
 
 
 --
--- Name: _prisma_migrations _prisma_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: _prisma_migrations _prisma_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public._prisma_migrations
@@ -506,7 +523,7 @@ ALTER TABLE ONLY public._prisma_migrations
 
 
 --
--- Name: championship_group championship_group_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: championship_group championship_group_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.championship_group
@@ -514,7 +531,7 @@ ALTER TABLE ONLY public.championship_group
 
 
 --
--- Name: championship championship_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: championship championship_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.championship
@@ -522,7 +539,7 @@ ALTER TABLE ONLY public.championship
 
 
 --
--- Name: duo duo_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: duo duo_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.duo
@@ -530,7 +547,7 @@ ALTER TABLE ONLY public.duo
 
 
 --
--- Name: group_player group_player_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: group_player group_player_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.group_player
@@ -538,7 +555,7 @@ ALTER TABLE ONLY public.group_player
 
 
 --
--- Name: match_participant match_participant_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: match_participant match_participant_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.match_participant
@@ -546,7 +563,7 @@ ALTER TABLE ONLY public.match_participant
 
 
 --
--- Name: match match_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: match match_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.match
@@ -554,7 +571,7 @@ ALTER TABLE ONLY public.match
 
 
 --
--- Name: player player_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: player player_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.player
@@ -562,21 +579,21 @@ ALTER TABLE ONLY public.player
 
 
 --
--- Name: _ChampionshipToPlayer_B_index; Type: INDEX; Schema: public; Owner: postgres
+-- Name: _ChampionshipToPlayer_B_index; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "_ChampionshipToPlayer_B_index" ON public."_ChampionshipToPlayer" USING btree ("B");
 
 
 --
--- Name: duo_player_1_id_player_2_id_championship_id_key; Type: INDEX; Schema: public; Owner: postgres
+-- Name: duo_player_1_id_player_2_id_championship_id_key; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX duo_player_1_id_player_2_id_championship_id_key ON public.duo USING btree (player_1_id, player_2_id, championship_id);
 
 
 --
--- Name: _ChampionshipToPlayer _ChampionshipToPlayer_A_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: _ChampionshipToPlayer _ChampionshipToPlayer_A_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."_ChampionshipToPlayer"
@@ -584,7 +601,7 @@ ALTER TABLE ONLY public."_ChampionshipToPlayer"
 
 
 --
--- Name: _ChampionshipToPlayer _ChampionshipToPlayer_B_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: _ChampionshipToPlayer _ChampionshipToPlayer_B_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."_ChampionshipToPlayer"
@@ -592,7 +609,7 @@ ALTER TABLE ONLY public."_ChampionshipToPlayer"
 
 
 --
--- Name: championship championship_duo_winner_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: championship championship_duo_winner_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.championship
@@ -600,7 +617,7 @@ ALTER TABLE ONLY public.championship
 
 
 --
--- Name: championship_group championship_group_championship_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: championship_group championship_group_championship_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.championship_group
@@ -608,7 +625,7 @@ ALTER TABLE ONLY public.championship_group
 
 
 --
--- Name: championship championship_winner_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: championship championship_winner_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.championship
@@ -616,7 +633,7 @@ ALTER TABLE ONLY public.championship
 
 
 --
--- Name: duo duo_championship_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: duo duo_championship_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.duo
@@ -624,7 +641,7 @@ ALTER TABLE ONLY public.duo
 
 
 --
--- Name: duo duo_player_1_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: duo duo_player_1_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.duo
@@ -632,7 +649,7 @@ ALTER TABLE ONLY public.duo
 
 
 --
--- Name: duo duo_player_2_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: duo duo_player_2_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.duo
@@ -640,7 +657,7 @@ ALTER TABLE ONLY public.duo
 
 
 --
--- Name: group_player group_player_championship_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: group_player group_player_championship_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.group_player
@@ -648,7 +665,7 @@ ALTER TABLE ONLY public.group_player
 
 
 --
--- Name: group_player group_player_duo_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: group_player group_player_duo_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.group_player
@@ -656,7 +673,7 @@ ALTER TABLE ONLY public.group_player
 
 
 --
--- Name: group_player group_player_player_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: group_player group_player_player_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.group_player
@@ -664,7 +681,7 @@ ALTER TABLE ONLY public.group_player
 
 
 --
--- Name: match match_championship_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: match match_championship_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.match
@@ -672,7 +689,7 @@ ALTER TABLE ONLY public.match
 
 
 --
--- Name: match match_duo_winner_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: match match_duo_winner_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.match
@@ -680,7 +697,7 @@ ALTER TABLE ONLY public.match
 
 
 --
--- Name: match_participant match_participant_duo_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: match_participant match_participant_duo_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.match_participant
@@ -688,7 +705,7 @@ ALTER TABLE ONLY public.match_participant
 
 
 --
--- Name: match_participant match_participant_match_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: match_participant match_participant_match_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.match_participant
@@ -696,7 +713,7 @@ ALTER TABLE ONLY public.match_participant
 
 
 --
--- Name: match_participant match_participant_player_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: match_participant match_participant_player_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.match_participant
@@ -704,18 +721,11 @@ ALTER TABLE ONLY public.match_participant
 
 
 --
--- Name: match match_winner_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: match match_winner_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.match
     ADD CONSTRAINT match_winner_id_fkey FOREIGN KEY (winner_id) REFERENCES public.player(id) ON UPDATE CASCADE ON DELETE SET NULL;
-
-
---
--- Name: SCHEMA public; Type: ACL; Schema: -; Owner: postgres
---
-
-REVOKE USAGE ON SCHEMA public FROM PUBLIC;
 
 
 --

@@ -12,22 +12,8 @@ Friends Cup is a backend API designed to manage and record the history of footba
 - **Groups**: Championship group stage management
 - **Statistics**: Goals scored, conceded, and performance metrics
 
-### Technology Stack
-
-- **Framework**: NestJS (Node.js)
-- **Language**: TypeScript
-- **Database**: PostgreSQL
-- **ORM**: Prisma
-- **Containerization**: Docker & Docker Compose
-- **Code Quality**: ESLint + Prettier
-
 ## 🚀 Quick Start
 
-### Prerequisites
-
-- Node.js (v18+)
-- Docker and Docker Compose
-- npm or yarn
 
 ### Installation
 
@@ -74,15 +60,6 @@ Friends Cup is a backend API designed to manage and record the history of footba
 |---------|-------------|
 | `npm run build` | Build the application for production |
 
-### Code Quality
-
-| Command | Description |
-|---------|-------------|
-| `npm run lint:check` | Check for linting errors |
-| `npm run lint:fix` | Auto-fix linting errors |
-| `npm run format` | Format code with Prettier |
-| `npm run type-check` | Run TypeScript type checking |
-
 ### Database
 
 | Command | Description |
@@ -100,26 +77,26 @@ Friends Cup is a backend API designed to manage and record the history of footba
 | `docker-compose down` | Stop all services |
 | `docker-compose logs backend` | View backend logs |
 
-### Code Style
 
-The project enforces strict TypeScript and ESLint rules:
+## Database Backups
 
-- **Explicit return types** required
-- **No `any` types** allowed
-- **Strict null checks** enabled
-- **Consistent imports** enforced
+This project provides automated commands to **create and restore PostgreSQL database dumps** directly from the Docker container, without temporary files or manual cleanup.
 
-### Database Management
+---
 
-Use Prisma Studio for visual database management:
+### Creating a Database Dump
+
+The dump is streamed directly from the database container to the host machine.
+
+#### Command
 ```bash
-npm run prisma:studio
+npm run db:dump
 ```
 
-## 🤝 Contributing
+### Restoring Database Dump
 
-1. **Follow the linting rules**: Run `npm run lint:check` before committing
-2. **Type safety**: Ensure `npm run type-check` passes
-3. **Format code**: Use `npm run format` for consistent styling
-
+#### Command
+```bash
+npm run db:restore
+```
 
