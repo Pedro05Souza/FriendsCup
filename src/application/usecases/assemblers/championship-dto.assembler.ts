@@ -91,10 +91,19 @@ export class ChampionshipDtoAssembler {
       (goal) => (goal.penaltyShootoutGoals ?? 0) > 0,
     );
 
+    const sortedParticipants = match.participantGoals.sort((a, b) => {
+      const aId = a.playerId ?? a.duoId ?? a.participantId;
+      const bId = b.playerId ?? b.duoId ?? b.participantId;
+
+      if (match.winnerId === aId) return -1;
+      if (match.winnerId === bId) return 1;
+      return 0;
+    });
+
     return {
       id: match.id,
       matchPhase: match.matchPhase,
-      participants: match.participantGoals.map((goal) => ({
+      participants: sortedParticipants.map((goal) => ({
         id: goal.playerId ?? goal.duoId ?? goal.participantId,
         goals: goal.goals,
         penaltyShootoutGoals: hasAnyPenalties
@@ -178,11 +187,19 @@ export class ChampionshipDtoAssembler {
   private getPhaseOrder(phase: string): number {
     const phaseOrder = {
       GROUP_STAGE: 0,
+      'PLAY-INS': 0,
       ROUND_OF_16: 1,
       QUARTER_FINALS: 2,
       SEMIFINALS: 3,
-      THIRD_PLACE: 4,
-      FINALS: 5,
+      THIRD_PLACE: 3.5,
+      UPPER_BRACKET_QUARTER_FINALS: 2,
+      ROUND_1_LOWER: 2.5,
+      UPPER_BRACKET_SEMIFINALS: 3,
+      ROUND_2_LOWER: 3.5,
+      UPPER_BRACKET_FINALS: 4,
+      ROUND_3_LOWER: 4.5,
+      LOWER_BRACKET_FINALS: 5,
+      FINALS: 6,
     };
     return phaseOrder[phase as keyof typeof phaseOrder] ?? 999;
   }

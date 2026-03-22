@@ -22,16 +22,18 @@ export interface RetrospectData {
 
 export const MatchPhaseWeight: Record<MatchPhase, number> = {
   GROUP_STAGE: 1,
+  'PLAY-INS': 1.5,
+  ROUND_1_LOWER: 1.5,
+  ROUND_2_LOWER: 1.5,
+  ROUND_3_LOWER: 1.5,
 
   ROUND_OF_16: 2,
 
   QUARTER_FINALS: 3,
   UPPER_BRACKET_QUARTER_FINALS: 3,
-  LOWER_BRACKET_QUARTER_FINALS: 3,
 
   SEMIFINALS: 4,
   UPPER_BRACKET_SEMIFINALS: 4,
-  LOWER_BRACKET_SEMIFINALS: 4,
 
   LOWER_BRACKET_FINALS: 5,
   THIRD_PLACE: 5,
