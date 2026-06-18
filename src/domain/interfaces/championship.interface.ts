@@ -1,5 +1,6 @@
 import type { DateTime } from 'luxon';
 import type {
+  ChampionshipBriefEntity,
   ChampionshipEntity,
   CompleteChampionshipEntity,
 } from '../entities/championship.entity';
@@ -109,6 +110,60 @@ export interface ChampionshipRepository {
   getAllMatchesWonByPlayerId(playerId: string): Promise<MatchEntity[]>;
   getAllMatchesLostByPlayerId(playerId: string): Promise<MatchEntity[]>;
   getAllMatchesDrawnByPlayerId(playerId: string): Promise<MatchEntity[]>;
+  listChampionships(): Promise<ChampionshipBriefEntity[]>;
+  getAllTimeRecords(): Promise<AllTimeRecordsData>;
+  getTopRivalries(limit: number): Promise<RivalryData[]>;
+}
+
+export interface AllTimeRecordsData {
+  topScorer: {
+    playerId: string;
+    playerName: string;
+    value: number;
+  } | null;
+  mostMatchesPlayed: {
+    playerId: string;
+    playerName: string;
+    value: number;
+  } | null;
+  mostTitles: {
+    playerId: string;
+    playerName: string;
+    value: number;
+  } | null;
+  highestWinRate: {
+    playerId: string;
+    playerName: string;
+    winRate: number;
+    matchesPlayed: number;
+  } | null;
+  biggestWin: {
+    playerName: string;
+    opponentName: string;
+    value: number;
+    scoreline: string;
+    championship: string;
+    phase: string;
+  } | null;
+  mostGoalsInOneMatch: {
+    playerName: string;
+    value: number;
+    championship: string;
+    phase: string;
+  } | null;
+}
+
+export interface RivalryData {
+  player1Id: string;
+  player1Name: string;
+  player2Id: string;
+  player2Name: string;
+  matchesPlayed: number;
+  player1Wins: number;
+  player2Wins: number;
+  draws: number;
+  player1Goals: number;
+  player2Goals: number;
 }
 
 export const championshipRepositoryToken = Symbol('ChampionshipRepository');

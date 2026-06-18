@@ -2,6 +2,15 @@ import type { DateTime } from 'luxon';
 import type { MatchEntity } from './match.entity';
 import type { DuoEntity, PlayerEntity } from './player.entity';
 
+export interface ChampionshipBriefEntity {
+  id: string;
+  title: string;
+  createdAt: DateTime;
+  isDuo: boolean;
+  matchCount: number;
+  winnerName: string | null;
+}
+
 export interface ChampionshipEntity {
   id: string;
   title: string;

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DateTime } from 'luxon';
 import {
+  AllTimeRecordsData,
   ChampionshipRepository,
   ChampionshipWinners,
   CreateChampionshipParams,
@@ -8,9 +9,11 @@ import {
   CreateDuoParams,
   CreateGroupEntityParams,
   CreateMatchParticipant,
+  RivalryData,
 } from '../../domain/interfaces/championship.interface';
 import { mapToChampionshipEntity } from './mappers/championship.mapper';
 import {
+  ChampionshipBriefEntity,
   ChampionshipEntity,
   CompleteChampionshipEntity,
 } from 'src/domain/entities/championship.entity';
@@ -757,6 +760,255 @@ export class ChampionshipRepositoryImpl implements ChampionshipRepository {
     });
 
     return matches.map(mapToMatchEntity);
+  }
+
+  async listChampionships(): Promise<ChampionshipBriefEntity[]> {
+    const championships = await this._prismaService.championship.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        title: true,
+        createdAt: true,
+        isDuo: true,
+        winner: { select: { name: true } },
+        duoWinner: {
+          select: {
+            player1: { select: { id: true, name: true } },
+            player2: { select: { id: true, name: true } },
+          },
+        },
+        _count: { select: { matches: true } },
+      },
+    });
+
+    return championships.map((c) => ({
+      id: c.id,
+      title: c.title,
+      createdAt: DateTime.fromJSDate(c.createdAt),
+      isDuo: c.isDuo,
+      matchCount: c._count.matches,
+      winnerName:
+        c.winner?.name ??
+        (c.duoWinner
+          ? c.duoWinner.player1.id === c.duoWinner.player2.id
+            ? c.duoWinner.player1.name
+            : `${c.duoWinner.player1.name} & ${c.duoWinner.player2.name}`
+          : null),
+    }));
+  }
+
+  async getAllTimeRecords(): Promise<AllTimeRecordsData> {
+    const [topGoalsRow, matchCountRow, champWinners, allSoloMatches] =
+      await Promise.all([
+        // Top scorer (aggregate goals per player)
+        this._prismaService.matchParticipant.groupBy({
+          by: ['playerId'],
+          where: { playerId: { not: null } },
+          _sum: { goals: true },
+          orderBy: { _sum: { goals: 'desc' } },
+          take: 1,
+        }),
+        // Most matches played
+        this._prismaService.matchParticipant.groupBy({
+          by: ['playerId'],
+          where: { playerId: { not: null } },
+          _count: { id: true },
+          orderBy: { _count: { id: 'desc' } },
+          take: 1,
+        }),
+        // Championship solo wins
+        this._prismaService.championship.findMany({
+          where: { winnerId: { not: null } },
+          select: { winnerId: true, winner: { select: { id: true, name: true } } },
+        }),
+        // All solo matches for win-rate, biggest-win, most-goals-in-one-match
+        this._prismaService.match.findMany({
+          include: {
+            participants: {
+              where: { playerId: { not: null } },
+              include: { player: { select: { id: true, name: true } } },
+            },
+            championship: { select: { title: true } },
+          },
+        }),
+      ]);
+
+    // Resolve player names for top scorer / most matches
+    const playerIds = [
+      topGoalsRow[0]?.playerId,
+      matchCountRow[0]?.playerId,
+    ].filter((id): id is string => !!id);
+
+    const players =
+      playerIds.length > 0
+        ? await this._prismaService.player.findMany({
+            where: { id: { in: playerIds } },
+            select: { id: true, name: true },
+          })
+        : [];
+    const playerMap = new Map(players.map((p) => [p.id, p.name]));
+
+    // --- biggest win & most goals in one match ---
+    let biggestWin: AllTimeRecordsData['biggestWin'] = null;
+    let mostGoalsInOneMatch: AllTimeRecordsData['mostGoalsInOneMatch'] = null;
+
+    // win-rate aggregation per player
+    const winRateMap = new Map<
+      string,
+      { name: string; wins: number; total: number }
+    >();
+
+    allSoloMatches.forEach((match) => {
+      const solo = match.participants.filter((p) => p.playerId);
+
+      // biggest win (requires exactly 2 solo participants)
+      if (solo.length === 2) {
+        const a = solo[0]!;
+        const b = solo[1]!;
+        const diff = Math.abs(a.goals - b.goals);
+        if (!biggestWin || diff > biggestWin.value) {
+          const winner = a.goals >= b.goals ? a : b;
+          const loser = a.goals >= b.goals ? b : a;
+          biggestWin = {
+            playerName: winner.player?.name ?? '',
+            opponentName: loser.player?.name ?? '',
+            value: diff,
+            scoreline: `${winner.goals}–${loser.goals}`,
+            championship: match.championship.title,
+            phase: match.matchPhase,
+          };
+        }
+      }
+
+      // most goals in one match & win-rate map
+      solo.forEach((p) => {
+        if (!p.playerId || !p.player) return;
+
+        if (!mostGoalsInOneMatch || p.goals > mostGoalsInOneMatch.value) {
+          mostGoalsInOneMatch = {
+            playerName: p.player.name,
+            value: p.goals,
+            championship: match.championship.title,
+            phase: match.matchPhase,
+          };
+        }
+
+        const entry = winRateMap.get(p.playerId) ?? {
+          name: p.player.name,
+          wins: 0,
+          total: 0,
+        };
+        entry.total++;
+        if (match.winnerId === p.playerId) entry.wins++;
+        winRateMap.set(p.playerId, entry);
+      });
+    });
+
+    // best win-rate (min 5 matches)
+    let highestWinRate: AllTimeRecordsData['highestWinRate'] = null;
+    winRateMap.forEach((entry, id) => {
+      if (entry.total < 5) return;
+      const wr = Number(((entry.wins / entry.total) * 100).toFixed(2));
+      if (!highestWinRate || wr > highestWinRate.winRate) {
+        highestWinRate = {
+          playerId: id,
+          playerName: entry.name,
+          winRate: wr,
+          matchesPlayed: entry.total,
+        };
+      }
+    });
+
+    // most titles
+    const titlesMap = new Map<string, { name: string; count: number }>();
+    champWinners.forEach((c) => {
+      if (!c.winner) return;
+      const e = titlesMap.get(c.winner.id) ?? { name: c.winner.name, count: 0 };
+      e.count++;
+      titlesMap.set(c.winner.id, e);
+    });
+    let mostTitles: AllTimeRecordsData['mostTitles'] = null;
+    titlesMap.forEach((e, id) => {
+      if (!mostTitles || e.count > mostTitles.value) {
+        mostTitles = { playerId: id, playerName: e.name, value: e.count };
+      }
+    });
+
+    return {
+      topScorer: topGoalsRow[0]
+        ? {
+            playerId: topGoalsRow[0].playerId!,
+            playerName: playerMap.get(topGoalsRow[0].playerId!) ?? '',
+            value: topGoalsRow[0]._sum.goals ?? 0,
+          }
+        : null,
+      mostMatchesPlayed: matchCountRow[0]
+        ? {
+            playerId: matchCountRow[0].playerId!,
+            playerName: playerMap.get(matchCountRow[0].playerId!) ?? '',
+            value: matchCountRow[0]._count.id,
+          }
+        : null,
+      mostTitles,
+      highestWinRate,
+      biggestWin,
+      mostGoalsInOneMatch,
+    };
+  }
+
+  async getTopRivalries(limit: number): Promise<RivalryData[]> {
+    const matches = await this._prismaService.match.findMany({
+      include: {
+        participants: {
+          where: { playerId: { not: null } },
+          include: { player: { select: { id: true, name: true } } },
+        },
+      },
+    });
+
+    const rivalryMap = new Map<string, RivalryData>();
+
+    matches.forEach((match) => {
+      const solo = match.participants.filter((p) => p.playerId && p.player);
+      if (solo.length !== 2) return;
+
+      const first = solo[0]!;
+      const second = solo[1]!;
+      const x = first.playerId! < second.playerId! ? first : second;
+      const y = first.playerId! < second.playerId! ? second : first;
+
+      const key = `${x.playerId!}:${y.playerId!}`;
+      const rivalry = rivalryMap.get(key) ?? {
+        player1Id: x.playerId!,
+        player1Name: x.player!.name,
+        player2Id: y.playerId!,
+        player2Name: y.player!.name,
+        matchesPlayed: 0,
+        player1Wins: 0,
+        player2Wins: 0,
+        draws: 0,
+        player1Goals: 0,
+        player2Goals: 0,
+      };
+
+      rivalry.matchesPlayed++;
+      rivalry.player1Goals += x.goals;
+      rivalry.player2Goals += y.goals;
+
+      if (!match.winnerId) {
+        rivalry.draws++;
+      } else if (match.winnerId === x.playerId!) {
+        rivalry.player1Wins++;
+      } else {
+        rivalry.player2Wins++;
+      }
+
+      rivalryMap.set(key, rivalry);
+    });
+
+    return Array.from(rivalryMap.values())
+      .sort((a, b) => b.matchesPlayed - a.matchesPlayed)
+      .slice(0, limit);
   }
 
   async getAllMatchesDrawnByPlayerId(playerId: string): Promise<MatchEntity[]> {

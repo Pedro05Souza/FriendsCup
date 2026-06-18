@@ -44,9 +44,49 @@ Friends Cup is a backend API designed to manage and record the history of footba
    npm run migrate:dev
    ```
 
+## 🖥️ Frontend
+
+The frontend is a React + Vite SPA located in the `frontend/` directory.
+
+### Running in development
+
+The dev server runs on port **5173** and automatically proxies `/api` requests to the NestJS backend on port **3000**, so both need to be running at the same time.
+
+1. **Install frontend dependencies** (first time only)
+   ```bash
+   cd frontend
+   npm install
+   ```
+
+2. **Start the backend** (in one terminal)
+   ```bash
+   docker-compose up        # starts DB + backend
+   ```
+
+3. **Start the frontend dev server** (in another terminal)
+   ```bash
+   cd frontend
+   npm run dev
+   ```
+
+4. Open [http://localhost:5173](http://localhost:5173)
+
+### Building for production
+
+Running the build outputs the compiled app to `public/`, which NestJS serves as static files — no separate frontend server needed.
+
+```bash
+cd frontend
+npm run build
+```
+
+After building, the full app (API + UI) is available at [http://localhost:3000](http://localhost:3000).
+
+---
+
 ## 📦 Available Commands
 
-### Development
+### Backend Development
 
 | Command | Description |
 |---------|-------------|

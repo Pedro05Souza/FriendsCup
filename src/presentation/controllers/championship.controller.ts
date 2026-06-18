@@ -1,4 +1,6 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { AllTimeRecordsDto } from 'src/application/dtos/all-time-records.dto';
+import { ChampionshipBriefDto } from 'src/application/dtos/championship-brief.dto';
 import { ChampionshipWinnersResponseDto } from 'src/application/dtos/championship-winners.dto';
 import { ChampionshipDto } from 'src/application/dtos/championship.dto';
 import { CreateChampionshipDto } from 'src/application/dtos/create-championship.dto';
@@ -9,6 +11,8 @@ import { CreateDuoUsecase } from 'src/application/usecases/create-duo.usecase';
 import { CreateMatchUsecase } from 'src/application/usecases/create-match.usecase';
 import { GetChampionshipWinnersUsecase } from 'src/application/usecases/get-championship-winners.usecase';
 import { GetChampionshipUsecase } from 'src/application/usecases/get-championship.usecase';
+import { ListChampionshipsUsecase } from 'src/application/usecases/list-championships.usecase';
+import { GetAllTimeRecordsUsecase } from 'src/application/usecases/get-all-time-records.usecase';
 import {
   RecapData,
   RecapUsecase,
@@ -23,7 +27,19 @@ export class ChampionshipController {
     private readonly _getChampionshipUsecase: GetChampionshipUsecase,
     private readonly _getChampionshipWinnersUsecase: GetChampionshipWinnersUsecase,
     private readonly _recapUsecase: RecapUsecase,
+    private readonly _listChampionshipsUsecase: ListChampionshipsUsecase,
+    private readonly _getAllTimeRecordsUsecase: GetAllTimeRecordsUsecase,
   ) {}
+
+  @Get()
+  async listChampionships(): Promise<ChampionshipBriefDto[]> {
+    return this._listChampionshipsUsecase.listChampionships();
+  }
+
+  @Get('/records')
+  async getAllTimeRecords(): Promise<AllTimeRecordsDto> {
+    return this._getAllTimeRecordsUsecase.getAllTimeRecords();
+  }
 
   @Get('/winners')
   async getChampionshipWinners(): Promise<ChampionshipWinnersResponseDto> {

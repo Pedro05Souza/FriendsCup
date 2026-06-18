@@ -15,10 +15,11 @@ export class ListPlayersUsecase {
     private readonly _playerDtoAssembler: PlayerDtoAssembler,
   ) {}
 
-  async listPlayers(page: number): Promise<ListPlayersDto> {
+  async listPlayers(page: number, name?: string): Promise<ListPlayersDto> {
     const listPlayerResponse = await this._playerRepository.listPlayers(
       page,
       PAGE_SIZE,
+      name,
     );
 
     return {
