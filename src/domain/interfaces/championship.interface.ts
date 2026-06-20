@@ -113,6 +113,27 @@ export interface ChampionshipRepository {
   listChampionships(): Promise<ChampionshipBriefEntity[]>;
   getAllTimeRecords(): Promise<AllTimeRecordsData>;
   getTopRivalries(limit: number): Promise<RivalryData[]>;
+  getRecentMatchesForPlayer(playerId: string, limit: number): Promise<PlayerFormData[]>;
+  getMatchHistoryDetailForPlayers(p1Id: string, p2Id: string): Promise<H2HMatchDetailData[]>;
+}
+
+export interface PlayerFormData {
+  result: 'W' | 'D' | 'L';
+  goalsFor: number;
+  goalsAgainst: number;
+  opponentName: string;
+  championship: string;
+  phase: string;
+  decidedByPenalties: boolean;
+}
+
+export interface H2HMatchDetailData {
+  championship: string;
+  year: number;
+  phase: string;
+  goalsP1: number;
+  goalsP2: number;
+  result: 'W' | 'D' | 'L';
 }
 
 export interface AllTimeRecordsData {
@@ -164,6 +185,7 @@ export interface RivalryData {
   draws: number;
   player1Goals: number;
   player2Goals: number;
+  classicScore: number;
 }
 
 export const championshipRepositoryToken = Symbol('ChampionshipRepository');

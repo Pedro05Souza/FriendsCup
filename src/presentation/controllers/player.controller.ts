@@ -17,6 +17,8 @@ import { UpdatePlayerUsecase } from 'src/application/usecases/update-player.usec
 import { ListPlayersUsecase } from 'src/application/usecases/list-players.usecase';
 import { ListPlayersDto } from 'src/application/dtos/list-players.dto';
 import { GetPlayerRankingsUsecase } from 'src/application/usecases/get-player-rankings.usecase';
+import { GetPlayerFormUsecase } from 'src/application/usecases/get-player-form.usecase';
+import { PlayerFormDto } from 'src/application/dtos/player-form.dto';
 import {
   RetrospectData,
   RetrospectUsecase,
@@ -31,6 +33,7 @@ export class PlayerController {
     private readonly _listPlayersUsecase: ListPlayersUsecase,
     private readonly _retrospectUsecase: RetrospectUsecase,
     private readonly _getPlayerRankingsUsecase: GetPlayerRankingsUsecase,
+    private readonly _getPlayerFormUsecase: GetPlayerFormUsecase,
   ) {}
 
   @Post()
@@ -62,6 +65,11 @@ export class PlayerController {
     @Query('name') name?: string,
   ): Promise<ListPlayersDto> {
     return this._listPlayersUsecase.listPlayers(page, name);
+  }
+
+  @Get('/:id/form')
+  async getForm(@Param('id') id: string): Promise<PlayerFormDto> {
+    return this._getPlayerFormUsecase.getPlayerForm(id);
   }
 
   @Get('/:id/retrospect')

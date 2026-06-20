@@ -32,11 +32,13 @@ export default function RadarChart({ axes, size = 200 }: RadarChartProps) {
     })
     .join(' ')
 
+  const pad = 28 // extra space so edge labels never get clipped
+
   return (
     <svg
       width={size}
       height={size}
-      viewBox={`0 0 ${size} ${size}`}
+      viewBox={`${-pad} ${-pad} ${size + pad * 2} ${size + pad * 2}`}
       aria-hidden="true"
     >
       {/* Grid rings */}

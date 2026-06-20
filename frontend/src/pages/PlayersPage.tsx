@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Copy, ChevronLeft, ChevronRight, Trash2, Pencil, BarChart2, Plus, Search } from 'lucide-react'
+import { Copy, ChevronLeft, ChevronRight, Trash2, Pencil, BarChart2, Plus, Search, ChevronsUpDown, ChevronUp, ChevronDown } from 'lucide-react'
 import { playersApi } from '../api/players'
-import type { Player, PlayerFormData, RetrospectData } from '../types'
-import { fmtPhase, copyToClipboard } from '../lib/utils'
+import type { FormEntry, Player, PlayerFormData, RetrospectData } from '../types'
+import { cn, fmtPhase, copyToClipboard } from '../lib/utils'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 import Dialog from '../components/ui/Dialog'
@@ -143,11 +143,159 @@ function RetrospectContent({
   )
 }
 
+// ── Form chips ───────────────────────────────────────────────────────────────
+
+const FORM_COLOR: Record<string, string> = {
+  W: 'bg-emerald-500 text-white',
+  D: 'bg-amber-500 text-white',
+  L: 'bg-red-500 text-white',
+}
+
+function FormChips({ playerId }: { playerId: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['form', playerId],
+    queryFn: () => playersApi.form(playerId),
+    staleTime: 60_000,
+  })
+
+  if (isLoading) return <div className="flex gap-0.5">{Array.from({ length: 5 }).map((_, i) => <span key={i} className="w-4 h-4 rounded-sm bg-gh-border animate-pulse" />)}</div>
+
+  const entries = (data as FormEntry[] | undefined) ?? []
+  const chips = Array.from({ length: 5 }, (_, i) => entries[i] ?? null)
+
+  return (
+    <div
+      className="flex gap-0.5"
+      title={entries.map(e =>
+        `${e.result}${e.decidedByPenalties ? '(pens)' : ''} ${e.goalsFor}-${e.goalsAgainst} vs ${e.opponentName}`
+      ).join('\n')}
+    >
+      {chips.map((e, i) => {
+        if (!e) return <span key={i} className="w-4 h-4 rounded-sm bg-gh-elevated border border-gh-border/40" />
+        const displayLetter = e.decidedByPenalties ? 'D' : e.result
+        const penSuffix = e.decidedByPenalties ? (e.result === 'W' ? 'p' : 'L') : null
+        const colorKey = e.decidedByPenalties ? 'D' : e.result
+        return (
+          <span
+            key={i}
+            className={`inline-flex items-center justify-center h-4 rounded-sm text-[9px] font-bold px-0.5 min-w-[16px] ${FORM_COLOR[colorKey]}`}
+          >
+            {displayLetter}
+            {penSuffix && <span className="text-[7px] opacity-80 ml-0.5">{penSuffix}</span>}
+          </span>
+        )
+      })}
+    </div>
+  )
+}
+
+// ── Player row (component so it can call useQuery for form) ───────────────────
+
+function PlayerRow({
+  p,
+  onEdit,
+  onDelete,
+  onStats,
+  onCopyId,
+  deleteLoading,
+  ovrDelta,
+  statDeltas,
+}: {
+  p: Player
+  onEdit: (p: Player) => void
+  onDelete: (p: Player) => void
+  onStats: (p: Player) => void
+  onCopyId: (id: string) => void
+  deleteLoading: boolean
+  ovrDelta?: number
+  statDeltas?: { ovr: number; attack: number; defense: number; intelligence: number; mentality: number }
+}) {
+  return (
+    <tr className={cn(
+      'border-b border-gh-border/50 hover:bg-gh-elevated/40 transition-all duration-300',
+      ovrDelta !== undefined && 'bg-emerald-500/[0.04]',
+    )}>
+      {/* Name + ID */}
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-xs font-bold text-emerald-400 shrink-0">
+            {p.overrallRating}
+          </div>
+          <div>
+            <p className="font-semibold text-zinc-100">{p.name}</p>
+            <button
+              onClick={() => onCopyId(p.id)}
+              className="flex items-center gap-1 text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors mt-0.5"
+            >
+              <Copy className="w-2.5 h-2.5" />
+              {p.id.slice(0, 8)}…
+            </button>
+          </div>
+        </div>
+      </td>
+      {/* Overall */}
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-1.5">
+          <Badge variant={p.overrallRating >= 75 ? 'green' : p.overrallRating >= 50 ? 'yellow' : 'red'}>
+            {p.overrallRating}
+          </Badge>
+          {ovrDelta !== undefined && ovrDelta !== 0 && (
+            <span className={cn(
+              'text-[11px] font-bold tabular-nums',
+              ovrDelta > 0 ? 'text-emerald-400' : 'text-red-400',
+            )}>
+              {ovrDelta > 0 ? `+${ovrDelta}` : ovrDelta}
+            </span>
+          )}
+        </div>
+      </td>
+      {/* Stat bars */}
+      {(['attack', 'defense', 'intelligence', 'mentality'] as const).map(stat => {
+        const delta = statDeltas?.[stat]
+        return (
+          <td key={stat} className="px-4 py-3 min-w-[100px]">
+            <div className="flex items-center gap-1.5">
+              <RatingBar value={p[stat]} className="flex-1" />
+              {!!delta && (
+                <span className={cn('text-[10px] font-bold tabular-nums shrink-0', delta > 0 ? 'text-emerald-400' : 'text-red-400')}>
+                  {delta > 0 ? `+${delta}` : delta}
+                </span>
+              )}
+            </div>
+          </td>
+        )
+      })}
+      {/* Form */}
+      <td className="px-4 py-3"><FormChips playerId={p.id} /></td>
+      {/* Actions */}
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-1.5">
+          <Button size="sm" variant="subtle" onClick={() => onStats(p)}>
+            <BarChart2 className="w-3 h-3" />
+            Stats
+          </Button>
+          <Button size="sm" variant="subtle" onClick={() => onEdit(p)}>
+            <Pencil className="w-3 h-3" />
+          </Button>
+          <Button size="sm" variant="danger" onClick={() => onDelete(p)} loading={deleteLoading}>
+            <Trash2 className="w-3 h-3" />
+          </Button>
+        </div>
+      </td>
+    </tr>
+  )
+}
+
 // ── Main Page ────────────────────────────────────────────────────────────────
 
 export default function PlayersPage() {
+  type SortKey = 'overrallRating' | 'attack' | 'defense' | 'intelligence' | 'mentality' | 'name'
+  type SortDir = 'asc' | 'desc'
+
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
+  const [sortKey, setSortKey] = useState<SortKey>('overrallRating')
+  const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [createOpen, setCreateOpen] = useState(false)
   const [editPlayer, setEditPlayer] = useState<Player | null>(null)
   const [retroPlayer, setRetroPlayer] = useState<Player | null>(null)
@@ -169,13 +317,28 @@ export default function PlayersPage() {
     onError: (e: Error) => toast.error(e.message),
   })
 
+  interface StatDeltas {
+    ovr: number; attack: number; defense: number; intelligence: number; mentality: number
+  }
+  const [statDeltas, setStatDeltas] = useState<Map<string, StatDeltas>>(new Map())
+
   const updateMut = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: PlayerFormData }) =>
-      playersApi.update(id, data),
-    onSuccess: () => {
+    mutationFn: (vars: { id: string; data: PlayerFormData; old: Player }) =>
+      playersApi.update(vars.id, vars.data),
+    onSuccess: (result, vars) => {
+      const p = result as Player
+      const deltas: StatDeltas = {
+        ovr:          p.overrallRating   - vars.old.overrallRating,
+        attack:       p.attack           - vars.old.attack,
+        defense:      p.defense          - vars.old.defense,
+        intelligence: p.intelligence     - vars.old.intelligence,
+        mentality:    p.mentality        - vars.old.mentality,
+      }
+      const hasChange = Object.values(deltas).some(d => d !== 0)
+      if (hasChange) setStatDeltas(prev => new Map(prev).set(vars.id, deltas))
       qc.invalidateQueries({ queryKey: ['players'] })
       setEditPlayer(null)
-      toast.success('Player updated')
+      toast.success(`Player updated${deltas.ovr !== 0 ? ` (OVR ${deltas.ovr > 0 ? '+' : ''}${deltas.ovr})` : ''}`)
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -193,6 +356,21 @@ export default function PlayersPage() {
     if (!confirm(`Delete "${p.name}"? This cannot be undone.`)) return
     deleteMut.mutate(p.id)
   }
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortKey(key); setSortDir('desc') }
+  }
+
+  const sortedPlayers = useMemo(() => {
+    const players = data?.players ?? []
+    return [...players].sort((a, b) => {
+      const av = a[sortKey], bv = b[sortKey]
+      if (typeof av === 'string' && typeof bv === 'string')
+        return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
+      return sortDir === 'asc' ? (av as number) - (bv as number) : (bv as number) - (av as number)
+    })
+  }, [data?.players, sortKey, sortDir])
 
   const handleCopyId = async (id: string) => {
     await copyToClipboard(id)
@@ -230,12 +408,34 @@ export default function PlayersPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gh-border">
-                {['Player', 'OVR', 'Attack', 'Defense', 'Intelligence', 'Mentality', ''].map(h => (
+                {([
+                  { label: 'Player',       key: 'name'          },
+                  { label: 'OVR',          key: 'overrallRating'},
+                  { label: 'Attack',       key: 'attack'        },
+                  { label: 'Defense',      key: 'defense'       },
+                  { label: 'Intelligence', key: 'intelligence'  },
+                  { label: 'Mentality',    key: 'mentality'     },
+                  { label: 'Form',         key: null            },
+                  { label: '',             key: null            },
+                ] as { label: string; key: SortKey | null }[]).map(({ label, key }) => (
                   <th
-                    key={h}
-                    className="px-4 py-2.5 text-left text-[11px] font-medium text-zinc-500 uppercase tracking-wider"
+                    key={label}
+                    onClick={() => key && handleSort(key)}
+                    className={cn(
+                      'px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider',
+                      key ? 'cursor-pointer select-none text-zinc-400 hover:text-zinc-100 transition-colors' : 'text-zinc-500',
+                    )}
                   >
-                    {h}
+                    <div className="flex items-center gap-1">
+                      {label}
+                      {key && (
+                        sortKey === key
+                          ? sortDir === 'desc'
+                            ? <ChevronDown className="w-3 h-3 text-emerald-400" />
+                            : <ChevronUp className="w-3 h-3 text-emerald-400" />
+                          : <ChevronsUpDown className="w-3 h-3 opacity-30" />
+                      )}
+                    </div>
                   </th>
                 ))}
               </tr>
@@ -243,87 +443,34 @@ export default function PlayersPage() {
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center">
+                  <td colSpan={8} className="py-12 text-center">
                     <Spinner className="mx-auto" />
                   </td>
                 </tr>
               ) : !data?.players.length ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-zinc-600 text-sm">
+                  <td colSpan={8} className="py-12 text-center text-zinc-600 text-sm">
                     No players found
                   </td>
                 </tr>
               ) : (
-                data.players.map(p => (
-                  <tr
+                sortedPlayers.map(p => (
+                  <PlayerRow
                     key={p.id}
-                    className="border-b border-gh-border/50 hover:bg-gh-elevated/40 transition-colors"
-                  >
-                    {/* Name + ID */}
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-xs font-bold text-emerald-400 shrink-0">
-                          {p.overrallRating}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-zinc-100">{p.name}</p>
-                          <button
-                            onClick={() => handleCopyId(p.id)}
-                            className="flex items-center gap-1 text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors mt-0.5"
-                          >
-                            <Copy className="w-2.5 h-2.5" />
-                            {p.id.slice(0, 8)}…
-                          </button>
-                        </div>
-                      </div>
-                    </td>
-                    {/* Overall */}
-                    <td className="px-4 py-3">
-                      <Badge variant={p.overrallRating >= 75 ? 'green' : p.overrallRating >= 50 ? 'yellow' : 'red'}>
-                        {p.overrallRating}
-                      </Badge>
-                    </td>
-                    {/* Stat bars */}
-                    <td className="px-4 py-3 min-w-[100px]"><RatingBar value={p.attack} /></td>
-                    <td className="px-4 py-3 min-w-[100px]"><RatingBar value={p.defense} /></td>
-                    <td className="px-4 py-3 min-w-[100px]"><RatingBar value={p.intelligence} /></td>
-                    <td className="px-4 py-3 min-w-[100px]"><RatingBar value={p.mentality} /></td>
-                    {/* Actions */}
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1.5">
-                        <Button
-                          size="sm"
-                          variant="subtle"
-                          onClick={() => setRetroPlayer(p)}
-                        >
-                          <BarChart2 className="w-3 h-3" />
-                          Stats
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="subtle"
-                          onClick={() => setEditPlayer(p)}
-                        >
-                          <Pencil className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="danger"
-                          onClick={() => handleDelete(p)}
-                          loading={deleteMut.isPending && deleteMut.variables === p.id}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
+                    p={p}
+                    onEdit={setEditPlayer}
+                    onDelete={handleDelete}
+                    onStats={setRetroPlayer}
+                    onCopyId={handleCopyId}
+                    deleteLoading={deleteMut.isPending && deleteMut.variables === p.id}
+                    ovrDelta={statDeltas.get(p.id)?.ovr}
+                    statDeltas={statDeltas.get(p.id)}
+                  />
                 ))
               )}
             </tbody>
           </table>
         </div>
-
-        {/* Pagination */}
         {data && (
           <div className="flex items-center justify-between px-4 py-2.5 border-t border-gh-border">
             <span className="text-xs text-zinc-600">Page {page}</span>
@@ -359,7 +506,7 @@ export default function PlayersPage() {
         {editPlayer && (
           <PlayerForm
             initial={editPlayer}
-            onSubmit={data => updateMut.mutate({ id: editPlayer.id, data })}
+            onSubmit={data => updateMut.mutate({ id: editPlayer.id, data, old: editPlayer })}
             onCancel={() => setEditPlayer(null)}
             loading={updateMut.isPending}
           />

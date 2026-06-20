@@ -3,7 +3,9 @@ import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Swords } from 'lucide-react'
 import { matchesApi } from '../api/matches'
-import type { MatchHistoryDto, Rivalry } from '../types'
+import { playersApi } from '../api/players'
+import type { H2HMatchDetail, MatchHistoryDto, Player, Rivalry } from '../types'
+import { fmtPhase } from '../lib/utils'
 import Button from '../components/ui/Button'
 import StatCard from '../components/ui/StatCard'
 import Spinner from '../components/ui/Spinner'
@@ -11,34 +13,52 @@ import { cn } from '../lib/utils'
 
 // ── Rivalries list ───────────────────────────────────────────────────────────
 
+function classicLabel(score: number, played: number): { text: string; color: string } {
+  if (played < 2) return { text: 'Too soon', color: 'text-zinc-600' }
+  const ratio = score / played
+  if (ratio >= 0.85) return { text: '🔥 Classic', color: 'text-amber-400' }
+  if (ratio >= 0.6) return { text: 'Rivalry', color: 'text-emerald-400' }
+  if (ratio >= 0.3) return { text: 'Competitive', color: 'text-blue-400' }
+  return { text: 'One-sided', color: 'text-zinc-500' }
+}
+
 function RivalryCard({
   r,
+  index,
   onSelect,
 }: {
   r: Rivalry
+  index: number
   onSelect: (p1: string, p2: string) => void
 }) {
   const total = r.matchesPlayed || 1
   const p1Pct = (r.player1Wins / total) * 100
   const drawPct = (r.draws / total) * 100
   const p2Pct = (r.player2Wins / total) * 100
+  const { text: label, color } = classicLabel(r.classicScore, r.matchesPlayed)
 
   return (
     <button
       onClick={() => onSelect(r.player1Id, r.player2Id)}
       className="w-full bg-gh-bg border border-gh-border/50 rounded-lg px-4 py-3 hover:border-gh-border hover:bg-gh-elevated/40 transition-colors text-left"
     >
-      <div className="grid grid-cols-[1fr,auto,1fr] items-center gap-3 mb-2">
-        <span className="text-sm font-semibold text-zinc-100 text-right">{r.player1Name}</span>
-        <span className="text-xs font-bold text-zinc-500 tabular-nums">{r.player1Wins}–{r.draws}–{r.player2Wins}</span>
-        <span className="text-sm font-semibold text-zinc-100">{r.player2Name}</span>
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-[10px] font-bold text-zinc-700">#{index + 1}</span>
+        <span className={cn('text-[10px] font-semibold', color)}>{label}</span>
+      </div>
+      <div className="grid grid-cols-[1fr,auto,1fr] items-center gap-2 mb-2">
+        <span className="text-sm font-semibold text-zinc-100 text-right truncate">{r.player1Name}</span>
+        <span className="text-xs font-bold text-zinc-400 tabular-nums shrink-0">
+          {r.player1Wins}–{r.draws}–{r.player2Wins}
+        </span>
+        <span className="text-sm font-semibold text-zinc-100 truncate">{r.player2Name}</span>
       </div>
       <div className="flex h-1 rounded-full overflow-hidden">
         <div className="bg-emerald-500 transition-all" style={{ width: `${p1Pct}%` }} />
         <div className="bg-zinc-600 transition-all" style={{ width: `${drawPct}%` }} />
         <div className="bg-blue-500 transition-all" style={{ width: `${p2Pct}%` }} />
       </div>
-      <p className="text-xs text-zinc-600 mt-1.5 text-center">{r.matchesPlayed} matches</p>
+      <p className="text-xs text-zinc-600 mt-1.5 text-center">{r.matchesPlayed} matches · score {r.classicScore}</p>
     </button>
   )
 }
@@ -86,12 +106,85 @@ function H2HResult({ data }: { data: MatchHistoryDto }) {
   )
 }
 
+// ── Match detail list ────────────────────────────────────────────────────────
+
+const RESULT_STYLE: Record<string, string> = {
+  W: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+  D: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+  L: 'bg-red-500/15 text-red-400 border-red-500/30',
+}
+
+function MatchDetailList({
+  p1Id,
+  p2Id,
+}: {
+  p1Id: string
+  p2Id: string
+}) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['h2h-details', p1Id, p2Id],
+    queryFn: () => matchesApi.h2hDetails(p1Id, p2Id),
+  })
+
+  if (isLoading) return <div className="flex justify-center py-6"><Spinner /></div>
+  if (!data || (data as H2HMatchDetail[]).length === 0) return (
+    <p className="text-sm text-zinc-600 text-center py-6">No matches found</p>
+  )
+
+  // Reverse so oldest match is at the top (chronological read)
+  const matches = [...(data as H2HMatchDetail[])].reverse()
+
+  return (
+    <div className="bg-gh-surface border border-gh-border rounded-lg overflow-hidden">
+      <div className="px-4 py-3 border-b border-gh-border">
+        <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+          Match History ({matches.length})
+        </p>
+      </div>
+      <div className="divide-y divide-gh-border/40">
+        {matches.map((m, i) => (
+          <div key={i} className="flex items-center gap-4 px-4 py-2.5 hover:bg-gh-elevated/30 transition-colors">
+            {/* Result badge */}
+            <span className={cn(
+              'inline-flex items-center justify-center w-6 h-6 rounded text-[11px] font-bold border shrink-0',
+              RESULT_STYLE[m.result],
+            )}>
+              {m.result}
+            </span>
+
+            {/* Score */}
+            <span className="text-sm font-bold tabular-nums text-zinc-100 w-10 text-center shrink-0">
+              {m.goalsP1}–{m.goalsP2}
+            </span>
+
+            {/* Championship + phase */}
+            <div className="flex-1 min-w-0">
+              <span className="text-sm text-zinc-300 font-medium">{m.championship}</span>
+              <span className="text-zinc-600 mx-1.5">·</span>
+              <span className="text-xs text-zinc-500">{fmtPhase(m.phase)}</span>
+            </div>
+
+            {/* Year */}
+            <span className="text-xs text-zinc-600 shrink-0">{m.year}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function H2HPage() {
   const [p1, setP1] = useState('')
   const [p2, setP2] = useState('')
   const [query, setQuery] = useState<{ p1: string; p2: string } | null>(null)
+
+  const { data: allPlayers = [] } = useQuery({
+    queryKey: ['players-all'],
+    queryFn: playersApi.all,
+  })
+  const players = allPlayers as Player[]
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['h2h', query?.p1, query?.p2],
@@ -106,8 +199,9 @@ export default function H2HPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!p1.trim() || !p2.trim()) { toast.error('Both player IDs are required'); return }
-    setQuery({ p1: p1.trim(), p2: p2.trim() })
+    if (!p1 || !p2) { toast.error('Select both players'); return }
+    if (p1 === p2) { toast.error('Pick two different players'); return }
+    setQuery({ p1, p2 })
   }
 
   const handleRivalrySelect = (rid1: string, rid2: string) => {
@@ -117,7 +211,7 @@ export default function H2HPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const inputCls = 'w-full px-3 py-2 rounded-md border border-gh-border bg-gh-bg text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-emerald-500 transition-colors'
+  const selectCls = 'w-full px-3 py-2 rounded-md border border-gh-border bg-gh-bg text-sm text-zinc-100 focus:outline-none focus:border-emerald-500 transition-colors'
 
   return (
     <>
@@ -134,14 +228,24 @@ export default function H2HPage() {
               <div className="grid grid-cols-[1fr,auto,1fr] gap-3 items-end mb-4">
                 <div>
                   <label className="block text-xs font-medium text-zinc-400 mb-1.5">Player 1 (perspective)</label>
-                  <input value={p1} onChange={e => setP1(e.target.value)} placeholder="UUID…" className={inputCls} />
+                  <select value={p1} onChange={e => setP1(e.target.value)} className={selectCls}>
+                    <option value="">— Select player —</option>
+                    {players.filter(p => p.id !== p2).map(p => (
+                      <option key={p.id} value={p.id}>{p.name} ({p.overrallRating} OVR)</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="flex items-center justify-center pb-1">
                   <Swords className="w-5 h-5 text-zinc-600" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-zinc-400 mb-1.5">Player 2 (opponent)</label>
-                  <input value={p2} onChange={e => setP2(e.target.value)} placeholder="UUID…" className={inputCls} />
+                  <select value={p2} onChange={e => setP2(e.target.value)} className={selectCls}>
+                    <option value="">— Select player —</option>
+                    {players.filter(p => p.id !== p1).map(p => (
+                      <option key={p.id} value={p.id}>{p.name} ({p.overrallRating} OVR)</option>
+                    ))}
+                  </select>
                 </div>
               </div>
               <Button variant="primary" type="submit" loading={isLoading}>Compare</Button>
@@ -156,6 +260,7 @@ export default function H2HPage() {
 
           {isLoading && <div className="flex justify-center py-12"><Spinner /></div>}
           {data && <H2HResult data={data as MatchHistoryDto} />}
+          {query && !isLoading && <MatchDetailList p1Id={query.p1} p2Id={query.p2} />}
         </div>
 
         {/* Rivalries sidebar */}
@@ -170,8 +275,8 @@ export default function H2HPage() {
                 <p className="text-xs text-zinc-600 text-center py-4">No rivalries yet</p>
               )}
               {(rivalries as Rivalry[]).map((r, i) => (
-                <div key={i} className={cn(i > 4 && 'opacity-60')}>
-                  <RivalryCard r={r} onSelect={handleRivalrySelect} />
+                <div key={i} className={cn(i > 4 && 'opacity-50')}>
+                  <RivalryCard r={r} index={i} onSelect={handleRivalrySelect} />
                 </div>
               ))}
             </div>

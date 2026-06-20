@@ -9,6 +9,8 @@ import {
   CreateDuoParams,
   CreateGroupEntityParams,
   CreateMatchParticipant,
+  H2HMatchDetailData,
+  PlayerFormData,
   RivalryData,
 } from '../../domain/interfaces/championship.interface';
 import { mapToChampionshipEntity } from './mappers/championship.mapper';
@@ -989,6 +991,7 @@ export class ChampionshipRepositoryImpl implements ChampionshipRepository {
         draws: 0,
         player1Goals: 0,
         player2Goals: 0,
+        classicScore: 0,
       };
 
       rivalry.matchesPlayed++;
@@ -1006,9 +1009,182 @@ export class ChampionshipRepositoryImpl implements ChampionshipRepository {
       rivalryMap.set(key, rivalry);
     });
 
+    // classicScore = matches - |p1wins - p2wins|
+    // Peaks when perfectly balanced, falls to 0 when completely one-sided
+    rivalryMap.forEach((r) => {
+      r.classicScore = r.matchesPlayed - Math.abs(r.player1Wins - r.player2Wins);
+    });
+
     return Array.from(rivalryMap.values())
-      .sort((a, b) => b.matchesPlayed - a.matchesPlayed)
+      .sort((a, b) => b.classicScore - a.classicScore || b.matchesPlayed - a.matchesPlayed)
       .slice(0, limit);
+  }
+
+  async getRecentMatchesForPlayer(
+    playerId: string,
+    limit: number,
+  ): Promise<PlayerFormData[]> {
+    const matches = await this._prismaService.match.findMany({
+      where: {
+        participants: {
+          some: {
+            OR: [
+              { playerId },
+              { duo: { OR: [{ player1Id: playerId }, { player2Id: playerId }] } },
+            ],
+          },
+        },
+      },
+      include: {
+        participants: {
+          include: {
+            player: { select: { id: true, name: true } },
+            duo: {
+              include: {
+                player1: { select: { id: true, name: true } },
+                player2: { select: { id: true, name: true } },
+              },
+            },
+          },
+        },
+        championship: { select: { title: true, createdAt: true } },
+      },
+      orderBy: { championship: { createdAt: 'desc' } },
+      take: limit * 10,
+
+    });
+
+    // Secondary sort by phase weight so later rounds appear before earlier rounds
+    // within the same championship (Prisma can't do this natively without createdAt on Match)
+    const PHASE_WEIGHT: Record<string, number> = {
+      GROUP_STAGE: 1, 'PLAY-INS': 2, ROUND_OF_16: 3,
+      ROUND_1_LOWER: 3, QUARTER_FINALS: 4, UPPER_BRACKET_QUARTER_FINALS: 4,
+      ROUND_2_LOWER: 4, UPPER_BRACKET_SEMIFINALS: 5, SEMIFINALS: 5,
+      ROUND_3_LOWER: 5, UPPER_BRACKET_FINALS: 6, LOWER_BRACKET_FINALS: 6,
+      THIRD_PLACE: 6, FINALS: 7,
+    };
+
+    matches.sort((a, b) => {
+      const dateDiff =
+        b.championship.createdAt.getTime() - a.championship.createdAt.getTime();
+      if (dateDiff !== 0) return dateDiff;
+      return (PHASE_WEIGHT[b.matchPhase] ?? 0) - (PHASE_WEIGHT[a.matchPhase] ?? 0);
+    });
+
+    const result: PlayerFormData[] = [];
+
+    for (const match of matches) {
+      if (result.length >= limit) break;
+
+      const mine = match.participants.find(
+        (p) =>
+          p.playerId === playerId ||
+          (p.duo &&
+            (p.duo.player1Id === playerId || p.duo.player2Id === playerId)),
+      );
+      if (!mine) continue;
+
+      const theirs = match.participants.find((p) => p !== mine);
+
+      const goalsFor = mine.goals;
+      const goalsAgainst = theirs?.goals ?? 0;
+
+      let matchResult: 'W' | 'D' | 'L';
+      if (!match.winnerId && !match.duoWinnerId) {
+        matchResult = 'D';
+      } else {
+        const winnerId = match.winnerId ?? match.duoWinnerId;
+        const iWon =
+          winnerId === playerId ||
+          (mine.duo &&
+            (mine.duo.player1Id === playerId ||
+              mine.duo.player2Id === playerId) &&
+            winnerId === mine.duoId);
+        matchResult = iWon ? 'W' : 'L';
+      }
+
+      let opponentName = '?';
+      if (theirs?.player) {
+        opponentName = theirs.player.name;
+      } else if (theirs?.duo) {
+        const d = theirs.duo;
+        opponentName =
+          d.player1.id === d.player2.id
+            ? d.player1.name
+            : `${d.player1.name} & ${d.player2.name}`;
+      }
+
+      const decidedByPenalties =
+        goalsFor === goalsAgainst &&
+        (mine.penaltyShootoutGoals ?? 0) > 0;
+
+      result.push({
+        result: matchResult,
+        goalsFor,
+        goalsAgainst,
+        opponentName,
+        championship: match.championship.title,
+        phase: match.matchPhase,
+        decidedByPenalties,
+      });
+    }
+
+    return result;
+  }
+
+  async getMatchHistoryDetailForPlayers(
+    p1Id: string,
+    p2Id: string,
+  ): Promise<H2HMatchDetailData[]> {
+    const matches = await this._prismaService.match.findMany({
+      where: {
+        AND: [
+          {
+            participants: {
+              some: { OR: [{ playerId: p1Id }, { duoId: p1Id }] },
+            },
+          },
+          {
+            participants: {
+              some: { OR: [{ playerId: p2Id }, { duoId: p2Id }] },
+            },
+          },
+        ],
+      },
+      include: {
+        participants: {
+          select: { goals: true, playerId: true, duoId: true },
+        },
+        championship: { select: { title: true, createdAt: true } },
+      },
+      orderBy: { championship: { createdAt: 'desc' } },
+    });
+
+    return matches.map((match) => {
+      const p1Part = match.participants.find(
+        (p) => p.playerId === p1Id || p.duoId === p1Id,
+      );
+      const p2Part = match.participants.find(
+        (p) => p.playerId === p2Id || p.duoId === p2Id,
+      );
+
+      const goalsP1 = p1Part?.goals ?? 0;
+      const goalsP2 = p2Part?.goals ?? 0;
+
+      let result: 'W' | 'D' | 'L';
+      if (goalsP1 > goalsP2) result = 'W';
+      else if (goalsP1 < goalsP2) result = 'L';
+      else result = 'D';
+
+      return {
+        championship: match.championship.title,
+        year: match.championship.createdAt.getFullYear(),
+        phase: match.matchPhase,
+        goalsP1,
+        goalsP2,
+        result,
+      };
+    });
   }
 
   async getAllMatchesDrawnByPlayerId(playerId: string): Promise<MatchEntity[]> {

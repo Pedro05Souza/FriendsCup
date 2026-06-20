@@ -1,5 +1,5 @@
 import { apiFetch } from './client'
-import type { ListPlayersResponse, Player, PlayerFormData, PlayerRanking, RetrospectData } from '../types'
+import type { FormEntry, ListPlayersResponse, Player, PlayerFormData, PlayerRanking, RetrospectData } from '../types'
 
 export const playersApi = {
   list: (page: number, name?: string) => {
@@ -31,6 +31,9 @@ export const playersApi = {
 
   remove: (id: string) =>
     apiFetch<void>('DELETE', `/players/${id}`),
+
+  form: (id: string) =>
+    apiFetch<FormEntry[]>('GET', `/players/${id}/form`),
 
   retrospect: (id: string) =>
     apiFetch<RetrospectData>('GET', `/players/${id}/retrospect`),

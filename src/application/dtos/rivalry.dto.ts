@@ -11,6 +11,7 @@ export const rivalryDtoSchema = z.object({
   draws: z.number().int(),
   player1Goals: z.number().int(),
   player2Goals: z.number().int(),
+  classicScore: z.number().int(),
 });
 
 export type RivalryDto = z.infer<typeof rivalryDtoSchema>;

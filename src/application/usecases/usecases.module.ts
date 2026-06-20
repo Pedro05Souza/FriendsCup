@@ -18,6 +18,8 @@ import { ListChampionshipsUsecase } from './list-championships.usecase';
 import { GetPlayerRankingsUsecase } from './get-player-rankings.usecase';
 import { GetAllTimeRecordsUsecase } from './get-all-time-records.usecase';
 import { GetRivalriesUsecase } from './get-rivalries.usecase';
+import { GetPlayerFormUsecase } from './get-player-form.usecase';
+import { GetH2HMatchDetailUsecase } from './get-h2h-match-detail.usecase';
 
 @Module({
   controllers: [],
@@ -41,6 +43,8 @@ import { GetRivalriesUsecase } from './get-rivalries.usecase';
     GetPlayerRankingsUsecase,
     GetAllTimeRecordsUsecase,
     GetRivalriesUsecase,
+    GetPlayerFormUsecase,
+    GetH2HMatchDetailUsecase,
   ],
   exports: [
     CreatePlayerUsecase,
@@ -59,6 +63,8 @@ import { GetRivalriesUsecase } from './get-rivalries.usecase';
     GetPlayerRankingsUsecase,
     GetAllTimeRecordsUsecase,
     GetRivalriesUsecase,
+    GetPlayerFormUsecase,
+    GetH2HMatchDetailUsecase,
   ],
   imports: [RepositoriesModule],
 })

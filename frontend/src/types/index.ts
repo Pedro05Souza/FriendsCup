@@ -41,6 +41,28 @@ export interface Rivalry {
   draws: number
   player1Goals: number
   player2Goals: number
+  classicScore: number
+}
+
+export type FormResult = 'W' | 'D' | 'L'
+
+export interface FormEntry {
+  result: FormResult
+  goalsFor: number
+  goalsAgainst: number
+  opponentName: string
+  championship: string
+  phase: string
+  decidedByPenalties: boolean
+}
+
+export interface H2HMatchDetail {
+  championship: string
+  year: number
+  phase: string
+  goalsP1: number
+  goalsP2: number
+  result: FormResult
 }
 
 export interface ChampionshipBrief {
