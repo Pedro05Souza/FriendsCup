@@ -1,142 +1,103 @@
-# 🏆 Friends Cup - Tournament Management System
+# 🏆 Friends Cup
 
-A comprehensive tournament management system built with **NestJS** and **TypeScript** to track matches, championships, and player statistics. The goal of this is to preserve the tournament history created and disputed by me and my friends.
+**A full-stack app that records every match, title and rivalry from the football tournaments my friends and I have played over the years, and turns that history into rankings and stats.**
 
-## 📋 Project Overview
+![NestJS](https://img.shields.io/badge/NestJS-10-E0234E?logo=nestjs&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-6-2D3748?logo=prisma&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
+![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 
-Friends Cup is a backend API designed to manage and record the history of football matches, championships, and tournaments played among friends. The system tracks:
+---
 
-- **Players**: Individual player profiles with stats (attack, defense, intelligence, mentality)
-- **Championships**: Tournament competitions with multiple matches
-- **Matches**: Individual games with scores and results
-- **Groups**: Championship group stage management
-- **Statistics**: Goals scored, conceded, and performance metrics
+## What it does
 
-## 🚀 Quick Start
+- **Championships in any format**: group stages, knockouts, and double-elimination brackets (upper and lower bracket, play-ins, third-place match), in both 1v1 and 2v2 (duo) formats.
+- **Weighted all-time ranking**: each player's score combines win rate, average goals and titles. Titles are weighted by cup prestige, so a "world cup" counts more than a state cup.
+- **Head-to-head**: an H2H matrix between all players, the match-by-match history for any pair, and the top 10 rivalries.
+- **Player profiles**: attribute ratings (attack, defense, intelligence, mentality) shown as a radar chart, recent form (last 5 matches) and a personal retrospective.
+- **Records and yearly recap**: all-time records, a winners list, and an annual "recap" with podiums such as the golden boot (most goals) and best defense.
 
+## Architecture
 
-### Installation
+The backend follows a **clean / layered architecture** in NestJS:
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd cup
-   ```
+```
+src/
+├── domain/            Entities, repository interfaces (injection tokens), domain constants
+├── application/
+│   ├── usecases/      One use case per operation (rankings, H2H, recap, ...) + DTO assemblers
+│   └── dtos/          Request/response contracts validated with Zod (nestjs-zod)
+├── infraestructure/   Prisma repositories and mappers (Prisma model → domain entity)
+└── presentation/      REST controllers (/api/players, /api/championships, /api/matches)
+```
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+Use cases depend only on the repository **interfaces** in `domain/`. The Prisma implementations are injected through NestJS DI tokens, so the persistence layer can be swapped or mocked without touching business rules.
 
-3. **Set up environment variables**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
+The **frontend** (`frontend/`) is a React + Vite SPA using TanStack Query, React Router and Tailwind CSS. In production it compiles to `public/`, and NestJS serves it as static files, so the API and the UI ship as **one deployable**.
 
-4. **Start the application with Docker**
-   ```bash
-   docker-compose up
-   ```
+## API overview
 
-5. **Run database migrations**
-   ```bash
-   npm run migrate:dev
-   ```
+All routes are prefixed with `/api`.
 
-## 🖥️ Frontend
+| Resource | Endpoints |
+|---|---|
+| Players | `GET /players`, `POST /players`, `POST /players/:id`, `DELETE /players/:id`, `GET /players/rankings`, `GET /players/:id/form`, `GET /players/:id/retrospect` |
+| Championships | `GET /championships`, `POST /championships`, `GET /championships/:id`, `POST /championships/:id/matches`, `POST /championships/:id/duos`, `GET /championships/records`, `GET /championships/winners`, `GET /championships/recap/:year` |
+| Matches | `GET /matches/rivalries`, `GET /matches/history/:playerId/:opponentId`, `GET /matches/history/:playerId/:opponentId/details` |
 
-The frontend is a React + Vite SPA located in the `frontend/` directory.
+## Data model
 
-### Running in development
+`Player`, `Championship`, `ChampionshipGroup`, `GroupPlayer` (points and goal difference), `Match`, `MatchParticipant` (goals and penalty shootout goals) and `Duo`. The full schema is in [`prisma/schema.prisma`](prisma/schema.prisma).
 
-The dev server runs on port **5173** and automatically proxies `/api` requests to the NestJS backend on port **3000**, so both need to be running at the same time.
+## Tech stack
 
-1. **Install frontend dependencies** (first time only)
-   ```bash
-   cd frontend
-   npm install
-   ```
+| Layer | Tools |
+|---|---|
+| Backend | NestJS 10, TypeScript, Prisma 6, Zod, Luxon |
+| Database | PostgreSQL 17 (Docker), Adminer |
+| Frontend | React 18, Vite, TanStack Query, React Router, Tailwind CSS |
+| Tooling | Docker Compose, ESLint, Prettier |
 
-2. **Start the backend** (in one terminal)
-   ```bash
-   docker-compose up        # starts DB + backend
-   ```
+## Getting started
 
-3. **Start the frontend dev server** (in another terminal)
-   ```bash
-   cd frontend
-   npm run dev
-   ```
+### Prerequisites
 
-4. Open [http://localhost:5173](http://localhost:5173)
+Docker Desktop, plus Node.js 22 if you want to run the frontend dev server.
 
-### Building for production
+### Run it
 
-Running the build outputs the compiled app to `public/`, which NestJS serves as static files — no separate frontend server needed.
+```bash
+git clone https://github.com/Pedro05Souza/FriendsCup.git
+cd FriendsCup
+cp .env.template .env      # defaults work out of the box
+docker-compose up          # starts PostgreSQL, the API (hot reload) and Adminer
+npm run migrate:dev        # applies the Prisma migrations
+npm run db:restore         # optional: loads the sample data from dumps/dump.sql
+```
+
+The API runs at `http://localhost:3000/api`, and Adminer at `http://localhost:8080`.
+
+### Frontend
 
 ```bash
 cd frontend
-npm run build
+npm install
+npm run dev                # http://localhost:5173, proxies /api to port 3000
+npm run build              # outputs to ../public, served by NestJS at http://localhost:3000
 ```
 
-After building, the full app (API + UI) is available at [http://localhost:3000](http://localhost:3000).
-
----
-
-## 📦 Available Commands
-
-### Backend Development
+### Useful scripts
 
 | Command | Description |
-|---------|-------------|
-| `npm run start:dev` | Start development server with hot reload |
-| `npm run start:debug` | Start with debugging enabled |
-| `npm run start:prod` | Start production server |
+|---|---|
+| `npm run start:dev` | Backend with hot reload |
+| `npm run lint` / `npm run type-check` | ESLint / TypeScript checks |
+| `npm run prisma:studio` | Prisma Studio (database GUI) |
+| `npm run db:dump` | Saves a timestamped dump to `dumps/` |
+| `npm run db:restore` | Restores `dumps/dump.sql` |
 
-### Building
+## Author
 
-| Command | Description |
-|---------|-------------|
-| `npm run build` | Build the application for production |
-
-### Database
-
-| Command | Description |
-|---------|-------------|
-| `npm run migrate:dev` | Run database migrations |
-| `npm run prisma:studio` | Open Prisma Studio (database GUI) |
-| `npm run prisma:generate` | Generate Prisma client |
-
-### Docker
-
-| Command | Description |
-|---------|-------------|
-| `docker-compose up` | Start all services |
-| `docker-compose up -d` | Start services in background |
-| `docker-compose down` | Stop all services |
-| `docker-compose logs backend` | View backend logs |
-
-
-## Database Backups
-
-This project provides automated commands to **create and restore PostgreSQL database dumps** directly from the Docker container, without temporary files or manual cleanup.
-
----
-
-### Creating a Database Dump
-
-The dump is streamed directly from the database container to the host machine.
-
-#### Command
-```bash
-npm run db:dump
-```
-
-### Restoring Database Dump
-
-#### Command
-```bash
-npm run db:restore
-```
-
+**Pedro Henrique Ferreira Souza**: [GitHub](https://github.com/Pedro05Souza) · [LinkedIn](https://www.linkedin.com/in/pedro-henrique-ferreira-souza)
