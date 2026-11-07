@@ -7,10 +7,12 @@ export function cn(...inputs: ClassValue[]) {
 
 export function fmtDate(iso: string) {
   try {
+    // Cup dates are stored as midnight UTC; read them in UTC so they don't shift a day
     return new Date(iso).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
+      timeZone: 'UTC',
     })
   } catch {
     return iso
@@ -60,6 +62,21 @@ export function fmtCup(name: string) {
 /** "COPA NABOR" → "Copa Nabor" */
 export function fmtCupFull(name: string) {
   return name.toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
+}
+
+const FINISH_LABELS: Record<string, string> = {
+  CHAMPION: 'Champion',
+  RUNNER_UP: 'Runner-up',
+  FINALIST: 'Finalist',
+  THIRD: 'Third',
+  FOURTH: 'Fourth',
+  NOT_STARTED: 'No matches yet',
+}
+
+/** "Champion", "Runner-up", or the round they went out in. */
+export function fmtFinish(finish: string, phase?: string | null) {
+  if (finish === 'ELIMINATED') return phase ? fmtPhase(phase) : 'Knocked out'
+  return FINISH_LABELS[finish] ?? finish
 }
 
 /** Text colour for an overall rating tier. */

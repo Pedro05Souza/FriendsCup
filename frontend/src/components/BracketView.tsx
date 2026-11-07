@@ -31,7 +31,17 @@ function phaseAccent(phase: string) {
 
 // ── Single bracket card ──────────────────────────────────────────────────────
 
-function BracketCard({ match, edge, isFinal }: { match: Match; edge: string; isFinal: boolean }) {
+function BracketCard({
+  match,
+  edge,
+  isFinal,
+  onSelect,
+}: {
+  match: Match
+  edge: string
+  isFinal: boolean
+  onSelect?: (match: Match) => void
+}) {
   const [p1, p2] = match.participants
   const p1Wins = !!match.winnerId && match.winnerId === p1?.id
   const p2Wins = !!match.winnerId && match.winnerId === p2?.id
@@ -61,17 +71,30 @@ function BracketCard({ match, edge, isFinal }: { match: Match; edge: string; isF
     </div>
   )
 
-  return (
-    <div
-      className={cn(
-        'rounded-lg overflow-hidden mb-2.5 w-48 bg-turf-bg border border-turf-line border-l-[3px] divide-y divide-turf-line/70',
-        edge,
-        isFinal && match.winnerId && 'shadow-[0_0_0_1px_rgba(242,193,78,0.25)]',
-      )}
-    >
+  const cls = cn(
+    'block text-left rounded-lg overflow-hidden mb-2.5 w-48 bg-turf-bg border border-turf-line border-l-[3px] divide-y divide-turf-line/70',
+    edge,
+    isFinal && match.winnerId && 'shadow-[0_0_0_1px_rgba(242,193,78,0.25)]',
+    onSelect && 'hover:border-chalk-faint transition-colors cursor-pointer',
+  )
+  const rows = (
+    <>
       {row(p1?.name, p1?.goals, p1?.penaltyShootoutGoals, p1Wins)}
       {row(p2?.name, p2?.goals, p2?.penaltyShootoutGoals, p2Wins)}
-    </div>
+    </>
+  )
+
+  return onSelect ? (
+    <button
+      type="button"
+      onClick={() => onSelect(match)}
+      aria-label={`Edit ${p1?.name ?? ''} vs ${p2?.name ?? ''}`}
+      className={cls}
+    >
+      {rows}
+    </button>
+  ) : (
+    <div className={cls}>{rows}</div>
   )
 }
 
@@ -79,9 +102,11 @@ function BracketCard({ match, edge, isFinal }: { match: Match; edge: string; isF
 
 interface BracketViewProps {
   matches: Match[]
+  /** Makes each match clickable, e.g. to edit it */
+  onSelect?: (match: Match) => void
 }
 
-export default function BracketView({ matches }: BracketViewProps) {
+export default function BracketView({ matches, onSelect }: BracketViewProps) {
   const matchesByPhase = new Map<string, Match[]>()
   matches.forEach(m => {
     const arr = matchesByPhase.get(m.matchPhase) ?? []
@@ -108,7 +133,7 @@ export default function BracketView({ matches }: BracketViewProps) {
               <div className={cn('font-display text-lg font-bold mb-3', accent.text)}>{fmtPhase(phase)}</div>
               <div className="flex flex-col">
                 {phaseMatches.map(m => (
-                  <BracketCard key={m.id} match={m} edge={accent.edge} isFinal={isFinal} />
+                  <BracketCard key={m.id} match={m} edge={accent.edge} isFinal={isFinal} onSelect={onSelect} />
                 ))}
               </div>
             </div>
@@ -118,6 +143,7 @@ export default function BracketView({ matches }: BracketViewProps) {
 
       {phases.some(p => LOWER_PHASES.has(p) || UPPER_PHASES.has(p)) && (
         <div className="flex flex-wrap gap-x-5 gap-y-1 mt-4 text-xs text-chalk-faint">
+          {onSelect && <span className="text-chalk-muted">Select a match to edit it.</span>}
           <span className="flex items-center gap-1.5">
             <span className="w-3 h-[3px] rounded-full bg-chalk-faint inline-block" />
             Upper bracket

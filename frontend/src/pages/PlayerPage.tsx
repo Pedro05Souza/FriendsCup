@@ -1,13 +1,11 @@
 import { useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { useQueries, useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, Trophy, Goal, Swords } from 'lucide-react'
 import { playersApi } from '../api/players'
-import { matchesApi } from '../api/matches'
 import { championshipsApi } from '../api/championships'
-import type { FormEntry, MatchHistoryDto, Player } from '../types'
-import { cn, fmtCup, fmtCupFull, fmtDate, fmtPhase, ratingTone } from '../lib/utils'
-import { cupRun, type CupRun } from '../lib/stats'
+import type { FormEntry, PlayerSummaryCup, PlayerSummaryOpponent } from '../types'
+import { cn, fmtCup, fmtCupFull, fmtDate, fmtFinish, fmtPhase, ratingTone } from '../lib/utils'
 import RadarChart from '../components/ui/RadarChart'
 import RatingBar from '../components/ui/RatingBar'
 import { Empty, ErrorNote, Loading } from '../components/ui/States'
@@ -53,10 +51,7 @@ function Figure({ value, label, tone }: { value: React.ReactNode; label: string;
 
 // ── Opponents ────────────────────────────────────────────────────────────────
 
-interface OpponentRecord {
-  opponent: Player
-  h: MatchHistoryDto
-}
+type OpponentRecord = PlayerSummaryOpponent
 
 function OpponentCallout({
   kind,
@@ -70,7 +65,7 @@ function OpponentCallout({
   const victim = kind === 'victim'
   return (
     <Link
-      to={`/h2h?p1=${playerId}&p2=${rec.opponent.id}`}
+      to={`/h2h?p1=${playerId}&p2=${rec.opponentId}`}
       className={cn(
         'block rounded-xl border px-4 py-3.5 transition-colors',
         victim ? 'border-win/30 bg-win/[0.06] hover:border-win/60' : 'border-loss/30 bg-loss/[0.06] hover:border-loss/60',
@@ -79,9 +74,9 @@ function OpponentCallout({
       <p className={cn('text-xs font-semibold', victim ? 'text-win' : 'text-loss')}>
         {victim ? 'Favourite opponent' : 'Toughest opponent'}
       </p>
-      <p className="font-display text-3xl font-extrabold leading-tight text-chalk truncate mt-0.5">{rec.opponent.name}</p>
+      <p className="font-display text-3xl font-extrabold leading-tight text-chalk truncate mt-0.5">{rec.opponentName}</p>
       <p className="text-sm text-chalk-muted tabular-nums">
-        Won {rec.h.matchesWon} of {rec.h.matchesPlayed}, lost {rec.h.matchesLost}
+        Won {rec.wins} of {rec.matchesPlayed}, lost {rec.losses}
       </p>
     </Link>
   )
@@ -101,44 +96,44 @@ function OpponentsTable({ records, playerId }: { records: OpponentRecord[]; play
           </tr>
         </thead>
         <tbody>
-          {records.map(({ opponent, h }) => {
+          {records.map(h => {
             const total = h.matchesPlayed || 1
-            const wr = Math.round((h.matchesWon / total) * 100)
+            const wr = Math.round((h.wins / total) * 100)
             return (
-              <tr key={opponent.id} className="border-b border-turf-line/60 last:border-0 hover:bg-turf-raised/50 transition-colors">
+              <tr key={h.opponentId} className="border-b border-turf-line/60 last:border-0 hover:bg-turf-raised/50 transition-colors">
                 <td className="px-5 sm:px-6 py-3">
                   <Link
-                    to={`/h2h?p1=${playerId}&p2=${opponent.id}`}
+                    to={`/h2h?p1=${playerId}&p2=${h.opponentId}`}
                     className="font-semibold text-chalk hover:text-gold transition-colors"
                   >
-                    {opponent.name}
+                    {h.opponentName}
                   </Link>
                 </td>
                 <td className="px-3 py-3 text-right tabular-nums text-chalk-muted">{h.matchesPlayed}</td>
                 <td className="px-3 py-3">
                   <div className="flex items-center gap-3">
                     <span className="text-xs tabular-nums whitespace-nowrap w-16">
-                      <span className="text-win font-semibold">{h.matchesWon}</span>
+                      <span className="text-win font-semibold">{h.wins}</span>
                       <span className="text-chalk-faint"> · </span>
-                      <span className="text-draw font-semibold">{h.matchesDrawn}</span>
+                      <span className="text-draw font-semibold">{h.draws}</span>
                       <span className="text-chalk-faint"> · </span>
-                      <span className="text-loss font-semibold">{h.matchesLost}</span>
+                      <span className="text-loss font-semibold">{h.losses}</span>
                     </span>
                     <div className="hidden sm:flex h-1.5 w-28 rounded-full overflow-hidden gap-px bg-turf-line" aria-hidden="true">
-                      <div className="bg-win" style={{ width: `${(h.matchesWon / total) * 100}%` }} />
-                      <div className="bg-draw" style={{ width: `${(h.matchesDrawn / total) * 100}%` }} />
-                      <div className="bg-loss" style={{ width: `${(h.matchesLost / total) * 100}%` }} />
+                      <div className="bg-win" style={{ width: `${(h.wins / total) * 100}%` }} />
+                      <div className="bg-draw" style={{ width: `${(h.draws / total) * 100}%` }} />
+                      <div className="bg-loss" style={{ width: `${(h.losses / total) * 100}%` }} />
                     </div>
                   </div>
                 </td>
                 <td className="px-3 py-3 text-right tabular-nums text-chalk-muted whitespace-nowrap">
-                  {h.goalsScored}–{h.goalsConceded}
+                  {h.goalsFor}–{h.goalsAgainst}
                 </td>
                 <td className="px-5 sm:px-6 py-3 text-right">
                   <span
                     className={cn(
                       'font-display text-xl font-bold tabular-nums',
-                      h.matchesWon > h.matchesLost ? 'text-win' : h.matchesWon < h.matchesLost ? 'text-loss' : 'text-chalk',
+                      h.wins > h.losses ? 'text-win' : h.wins < h.losses ? 'text-loss' : 'text-chalk',
                     )}
                   >
                     {wr}%
@@ -155,23 +150,23 @@ function OpponentsTable({ records, playerId }: { records: OpponentRecord[]; play
 
 // ── Cup history ──────────────────────────────────────────────────────────────
 
-function CupHistory({ runs }: { runs: CupRun[] }) {
+function CupHistory({ runs }: { runs: PlayerSummaryCup[] }) {
   return (
     <ol className="divide-y divide-turf-line/60 border-t border-turf-line">
       {runs.map(r => {
-        const c = r.championship
-        const champ = r.finishRank === 0
+        const champ = r.finish === 'CHAMPION'
         return (
-          <li key={c.id}>
+          <li key={r.championshipId}>
             <Link
-              to={`/championships/${c.id}`}
+              to={`/championships/${r.championshipId}`}
               className="grid grid-cols-[1fr,auto] sm:grid-cols-[7.5rem,1fr,auto] items-center gap-x-4 gap-y-0.5 px-5 sm:px-6 py-3.5 hover:bg-turf-raised/50 transition-colors"
             >
               <span className="text-sm text-chalk-faint tabular-nums sm:order-none order-last col-span-2 sm:col-span-1">
-                {fmtDate(c.createdAtIso)}
+                {fmtDate(r.createdAtIso)}
               </span>
               <span className="min-w-0">
-                <span className="font-display text-xl font-bold text-chalk">{fmtCupFull(c.title)}</span>
+                <span className="font-display text-xl font-bold text-chalk">{fmtCupFull(r.title)}</span>
+                {r.isDuo && <span className="ml-2 text-xs font-medium text-lower">Duo</span>}
                 {r.goldenBoot && (
                   <span className="ml-2 inline-flex items-center gap-1 text-xs font-semibold text-gold">
                     <Goal className="w-3.5 h-3.5" /> Golden boot
@@ -182,14 +177,14 @@ function CupHistory({ runs }: { runs: CupRun[] }) {
                 <span
                   className={cn(
                     'inline-flex items-center gap-1.5 text-sm font-semibold',
-                    champ ? 'text-gold' : r.finishRank === 1 ? 'text-silver' : 'text-chalk-muted',
+                    champ ? 'text-gold' : r.finish === 'RUNNER_UP' || r.finish === 'FINALIST' ? 'text-silver' : 'text-chalk-muted',
                   )}
                 >
                   {champ && <Trophy className="w-4 h-4" />}
-                  {r.finish}
+                  {fmtFinish(r.finish, r.phase)}
                 </span>
                 <span className="block text-xs text-chalk-faint tabular-nums">
-                  {r.matches.length} {r.matches.length === 1 ? 'match' : 'matches'}, {r.goals} {r.goals === 1 ? 'goal' : 'goals'}
+                  {r.matchesPlayed} {r.matchesPlayed === 1 ? 'match' : 'matches'}, {r.goals} {r.goals === 1 ? 'goal' : 'goals'}
                 </span>
               </span>
             </Link>
@@ -231,28 +226,20 @@ export default function PlayerPage() {
   const titles = winners?.find(w => w.playerId === id)
   const titleCount = titles?.championships.reduce((s, c) => s + c.timesWon, 0) ?? 0
 
-  // Head to head against everyone else
-  const opponents = players.filter(p => p.id !== id)
-  const h2hResults = useQueries({
-    queries: opponents.map(o => ({
-      queryKey: ['h2h', id, o.id],
-      queryFn: () => matchesApi.h2h(id, o.id),
-      enabled: !!player,
-      retry: false,
-      staleTime: 60_000,
-    })),
+  // Cup history, finals record and opponents come from one request
+  const { data: summary, isLoading: summaryLoading } = useQuery({
+    queryKey: ['player-summary', id],
+    queryFn: () => playersApi.summary(id),
+    enabled: !!player,
   })
-  const h2hLoading = h2hResults.some(q => q.isLoading)
-  const records: OpponentRecord[] = opponents
-    .map((o, i) => ({ opponent: o, h: h2hResults[i]?.data as MatchHistoryDto | undefined }))
-    .filter((r): r is OpponentRecord => !!r.h && r.h.matchesPlayed > 0)
-    .sort((a, b) => b.h.matchesPlayed - a.h.matchesPlayed || b.h.matchesWon - a.h.matchesWon)
+  const records = summary?.opponents ?? []
+  const runs = summary?.cups ?? []
 
   const { victim, bogey } = useMemo(() => {
-    const eligible = records.filter(r => r.h.matchesPlayed >= 3)
+    const eligible = records.filter(r => r.matchesPlayed >= 3)
     if (eligible.length < 2) return { victim: undefined, bogey: undefined }
-    const score = (r: OpponentRecord) => (r.h.matchesWon - r.h.matchesLost) / r.h.matchesPlayed
-    const sorted = [...eligible].sort((a, b) => score(b) - score(a) || b.h.matchesPlayed - a.h.matchesPlayed)
+    const score = (r: OpponentRecord) => (r.wins - r.losses) / r.matchesPlayed
+    const sorted = [...eligible].sort((a, b) => score(b) - score(a) || b.matchesPlayed - a.matchesPlayed)
     const best = sorted[0]
     const worst = sorted[sorted.length - 1]
     return {
@@ -260,25 +247,6 @@ export default function PlayerPage() {
       bogey: score(worst) < 0 ? worst : undefined,
     }
   }, [records])
-
-  // Every championship, to build the cup history and finals record
-  const { data: briefs } = useQuery({ queryKey: ['championships'], queryFn: championshipsApi.list })
-  const champResults = useQueries({
-    queries: (briefs ?? []).map(b => ({
-      queryKey: ['championship', b.id],
-      queryFn: () => championshipsApi.get(b.id),
-      staleTime: 60_000,
-    })),
-  })
-  const cupsLoading = !briefs || champResults.some(q => q.isLoading)
-  const runs = champResults
-    .map(q => (q.data ? cupRun(q.data, id) : null))
-    .filter((r): r is CupRun => !!r)
-    .sort((a, b) => b.championship.createdAtIso.localeCompare(a.championship.createdAtIso))
-  const finalsPlayed = runs.filter(r => r.playedFinal).length
-  const finalsWon = runs.filter(r => r.wonFinal).length
-  const goldenBoots = runs.filter(r => r.goldenBoot).length
-  const bestFinish = runs.length ? [...runs].sort((a, b) => a.finishRank - b.finishRank)[0] : undefined
 
   if (playersLoading) return <Loading />
   if (playersError) return <ErrorNote error={playersError} />
@@ -407,7 +375,7 @@ export default function PlayerPage() {
                         )}
                       </p>
                       <p className="text-xs text-chalk-faint truncate">
-                        {fmtCup(e.championship)}, {fmtPhase(e.phase).toLowerCase()}
+                        {fmtCup(e.championship)}, {fmtPhase(e.phase)}
                       </p>
                     </div>
                   </li>
@@ -438,27 +406,27 @@ export default function PlayerPage() {
             </div>
           )}
 
-          {!cupsLoading && runs.length > 0 && (
+          {summary && runs.length > 0 && (
             <dl className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-4 mt-6 pt-5 border-t border-turf-line">
               <div>
                 <dt className="text-xs text-chalk-muted">Finals</dt>
                 <dd className="font-display text-3xl font-extrabold tabular-nums text-chalk leading-tight">
-                  {finalsWon}
-                  <span className="text-chalk-faint text-xl"> won of {finalsPlayed}</span>
+                  {summary.finalsWon}
+                  <span className="text-chalk-faint text-xl"> won of {summary.finalsPlayed}</span>
                 </dd>
               </div>
               <div>
                 <dt className="text-xs text-chalk-muted">Cups entered</dt>
-                <dd className="font-display text-3xl font-extrabold tabular-nums text-chalk leading-tight">{runs.length}</dd>
+                <dd className="font-display text-3xl font-extrabold tabular-nums text-chalk leading-tight">{summary.cupsEntered}</dd>
               </div>
               <div>
                 <dt className="text-xs text-chalk-muted">Golden boots</dt>
-                <dd className="font-display text-3xl font-extrabold tabular-nums text-chalk leading-tight">{goldenBoots}</dd>
+                <dd className="font-display text-3xl font-extrabold tabular-nums text-chalk leading-tight">{summary.goldenBoots}</dd>
               </div>
               <div>
                 <dt className="text-xs text-chalk-muted">Best finish</dt>
-                <dd className={cn('font-display text-3xl font-extrabold leading-tight', bestFinish?.finishRank === 0 ? 'text-gold' : 'text-chalk')}>
-                  {bestFinish?.finish ?? '–'}
+                <dd className={cn('font-display text-3xl font-extrabold leading-tight', summary.bestFinish?.finish === 'CHAMPION' ? 'text-gold' : 'text-chalk')}>
+                  {summary.bestFinish ? fmtFinish(summary.bestFinish.finish, summary.bestFinish.phase) : '–'}
                 </dd>
               </div>
             </dl>
@@ -472,7 +440,7 @@ export default function PlayerPage() {
         aside={records.length > 0 ? `${records.length} opponents` : undefined}
         className="mb-4"
       >
-        {h2hLoading ? (
+        {summaryLoading ? (
           <Loading className="py-10" />
         ) : records.length === 0 ? (
           <Empty title="No opponents yet" className="py-8" />
@@ -491,7 +459,7 @@ export default function PlayerPage() {
 
       {/* ── Cup history ── */}
       <Panel title="Cup history" aside={runs.length > 0 ? `${runs.length} cups` : undefined}>
-        {cupsLoading ? (
+        {summaryLoading ? (
           <Loading className="py-10" />
         ) : runs.length === 0 ? (
           <Empty title="Hasn't played a cup yet" className="py-8" />

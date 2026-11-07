@@ -2,7 +2,7 @@ import { type ButtonHTMLAttributes, forwardRef } from 'react'
 import { cn } from '../../lib/utils'
 import Spinner from './Spinner'
 
-type Variant = 'primary' | 'ghost' | 'danger' | 'subtle'
+type Variant = 'primary' | 'ghost' | 'danger' | 'destructive' | 'subtle'
 type Size = 'sm' | 'md'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -18,6 +18,8 @@ const variants: Record<Variant, string> = {
     'bg-transparent text-chalk-muted border-turf-line hover:text-chalk hover:border-chalk-faint',
   danger:
     'bg-transparent text-loss border-loss/30 hover:bg-loss/10 hover:border-loss/60',
+  destructive:
+    'bg-loss text-turf-bg border-loss hover:bg-[#F4837A] hover:border-[#F4837A] font-semibold',
   subtle:
     'bg-turf-raised text-chalk border-turf-line hover:border-chalk-faint',
 }
@@ -41,7 +43,14 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       disabled={disabled || loading}
       {...props}
     >
-      {loading && <Spinner className={cn('w-3.5 h-3.5', variant === 'primary' && 'border-turf-bg/20 border-t-turf-bg')} />}
+      {loading && (
+        <Spinner
+          className={cn(
+            'w-3.5 h-3.5',
+            (variant === 'primary' || variant === 'destructive') && 'border-turf-bg/20 border-t-turf-bg',
+          )}
+        />
+      )}
       {children}
     </button>
   ),

@@ -2,13 +2,14 @@ import { useState, useRef } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Search, Plus, ChevronDown, Trophy, Goal, Users } from 'lucide-react'
+import { Search, Plus, ChevronDown, Trophy, Goal, Users, Pencil, Trash2 } from 'lucide-react'
 import { championshipsApi, type CreateMatchData } from '../api/championships'
 import { playersApi } from '../api/players'
-import type { Championship, ChampionshipBrief, ChampionshipGroup, Player } from '../types'
+import type { Championship, ChampionshipBrief, ChampionshipGroup, Match, Player } from '../types'
 import { cn, fmtDate, fmtPhase, fmtDuo, fmtCup, fmtCupFull, ALL_PHASES, TOURNAMENT_NAMES } from '../lib/utils'
 import Button from '../components/ui/Button'
 import Dialog from '../components/ui/Dialog'
+import ConfirmDialog from '../components/ui/ConfirmDialog'
 import BracketView from '../components/BracketView'
 import PageHeader from '../components/ui/PageHeader'
 import { Empty, ErrorNote, Loading } from '../components/ui/States'
@@ -62,37 +63,53 @@ function CreateChampionshipForm({
   )
 }
 
-// ── Add Match Form ───────────────────────────────────────────────────────────
+// ── Match form (add or edit) ─────────────────────────────────────────────────
 
-function AddMatchForm({
-  champId,
-  groups,
+function MatchForm({
+  championship: c,
+  match,
   onCancel,
   onSuccess,
+  onDelete,
 }: {
-  champId: string
-  groups: ChampionshipGroup[]
+  championship: Championship
+  /** Set when editing an existing match */
+  match?: Match
   onCancel: () => void
   onSuccess: () => void
+  /** Editing only: asks to delete this match */
+  onDelete?: () => void
 }) {
-  const [phase, setPhase] = useState(ALL_PHASES[0])
+  const editing = !!match
+  const [first, second] = match?.participants ?? []
+  const [phase, setPhase] = useState(match?.matchPhase ?? ALL_PHASES[0])
   const [groupId, setGroupId] = useState('')
-  const [p1Id, setP1Id] = useState('')
-  const [p1Goals, setP1Goals] = useState(0)
-  const [p1Pen, setP1Pen] = useState(0)
-  const [p2Id, setP2Id] = useState('')
-  const [p2Goals, setP2Goals] = useState(0)
-  const [p2Pen, setP2Pen] = useState(0)
+  const [p1Id, setP1Id] = useState(first?.id ?? '')
+  const [p1Goals, setP1Goals] = useState(first?.goals ?? 0)
+  const [p1Pen, setP1Pen] = useState(first?.penaltyShootoutGoals ?? 0)
+  const [p2Id, setP2Id] = useState(second?.id ?? '')
+  const [p2Goals, setP2Goals] = useState(second?.goals ?? 0)
+  const [p2Pen, setP2Pen] = useState(second?.penaltyShootoutGoals ?? 0)
+  const groups = c.groups ?? []
 
   const { data: allPlayers = [] } = useQuery({
     queryKey: ['players-all'],
     queryFn: playersApi.all,
+    enabled: !c.isDuo,
   })
 
+  // Duo cups are played between duos, whose ids are the cup's participants
+  const options: { id: string; label: string }[] = c.isDuo
+    ? c.players.map(d => ({ id: d.id, label: d.name }))
+    : (allPlayers as Player[]).map(p => ({ id: p.id, label: `${p.name} (${p.overrallRating})` }))
+
   const mut = useMutation({
-    mutationFn: (data: CreateMatchData) => championshipsApi.createMatch(champId, data),
+    mutationFn: (data: CreateMatchData) =>
+      editing
+        ? championshipsApi.updateMatch(c.id, match.id, data)
+        : championshipsApi.createMatch(c.id, data),
     onSuccess: () => {
-      toast.success('Match added')
+      toast.success(editing ? 'Match updated' : 'Match added')
       onSuccess()
     },
     onError: (e: Error) => toast.error(e.message),
@@ -100,11 +117,12 @@ function AddMatchForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!p1Id || !p2Id) { toast.error('Both participants are required'); return }
-    if (p1Id === p2Id) { toast.error('Participants must be different players'); return }
+    const who = c.isDuo ? 'duos' : 'players'
+    if (!p1Id || !p2Id) { toast.error(`Choose both ${who}`); return }
+    if (p1Id === p2Id) { toast.error(`Pick two different ${who}`); return }
     mut.mutate({
       matchPhase: phase,
-      groupId: groupId || undefined,
+      groupId: phase === 'GROUP_STAGE' ? groupId || undefined : undefined,
       participants: [
         { id: p1Id, goals: p1Goals, penaltyShootoutGoals: p1Pen || undefined },
         { id: p2Id, goals: p2Goals, penaltyShootoutGoals: p2Pen || undefined },
@@ -122,20 +140,22 @@ function AddMatchForm({
     { key: 'away', id: p2Id, setId: setP2Id, goals: p2Goals, setGoals: setP2Goals, pen: p2Pen, setPen: setP2Pen },
   ] as const
 
+  const showGroup = groups.length > 0 && phase === 'GROUP_STAGE' && !editing
+
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <div className={cn('grid gap-3', groups.length > 0 && 'grid-cols-2')}>
+      <div className={cn('grid gap-3', showGroup && 'grid-cols-2')}>
         <div>
           <label htmlFor="match-phase" className="field-label">Phase</label>
           <select id="match-phase" value={phase} onChange={e => setPhase(e.target.value)} className="field">
             {ALL_PHASES.map(p => <option key={p} value={p}>{fmtPhase(p)}</option>)}
           </select>
         </div>
-        {groups.length > 0 && (
+        {showGroup && (
           <div>
             <label htmlFor="match-group" className="field-label">Group</label>
             <select id="match-group" value={groupId} onChange={e => setGroupId(e.target.value)} className="field">
-              <option value="">None (knockout)</option>
+              <option value="">Their current group</option>
               {groups.map((g, i) => (
                 <option key={g.id} value={g.id}>Group {String.fromCharCode(65 + i)}</option>
               ))}
@@ -149,11 +169,11 @@ function AddMatchForm({
         <div className="grid grid-cols-[1fr,auto,1fr] gap-3 items-start">
           {sides.map(({ key, id, setId, goals, setGoals, pen, setPen }, i) => (
             <div key={key} className={cn('space-y-2', i === 1 && 'col-start-3')}>
-              <label htmlFor={`match-${key}`} className="sr-only">Participant {i + 1}</label>
+              <label htmlFor={`match-${key}`} className="sr-only">{c.isDuo ? 'Duo' : 'Player'} {i + 1}</label>
               <select id={`match-${key}`} value={id} onChange={e => setId(e.target.value)} className="field">
-                <option value="">Select player</option>
-                {(allPlayers as Player[]).map(p => (
-                  <option key={p.id} value={p.id}>{p.name} ({p.overrallRating})</option>
+                <option value="">{c.isDuo ? 'Select duo' : 'Select player'}</option>
+                {options.map(o => (
+                  <option key={o.id} value={o.id}>{o.label}</option>
                 ))}
               </select>
               <label htmlFor={`goals-${key}`} className="sr-only">Goals</label>
@@ -185,9 +205,22 @@ function AddMatchForm({
         <p className="text-xs text-chalk-faint mt-3">Only fill in penalties if the match went to a shootout.</p>
       </div>
 
-      <div className="flex gap-2 justify-end">
-        <Button variant="ghost" type="button" onClick={onCancel}>Cancel</Button>
-        <Button variant="primary" type="submit" loading={mut.isPending}>Add match</Button>
+      {c.isDuo && options.length === 0 && (
+        <p className="text-sm text-gold">Add the cup's duos first, then record their matches.</p>
+      )}
+
+      <div className="flex items-center gap-2">
+        {editing && onDelete && (
+          <Button variant="danger" type="button" onClick={onDelete} className="mr-auto">
+            <Trash2 className="w-4 h-4" /> Delete match
+          </Button>
+        )}
+        <Button variant="ghost" type="button" onClick={onCancel} className={cn(!editing && 'ml-auto')}>
+          Cancel
+        </Button>
+        <Button variant="primary" type="submit" loading={mut.isPending}>
+          {editing ? 'Save changes' : 'Add match'}
+        </Button>
       </div>
     </form>
   )
@@ -256,9 +289,11 @@ function AddDuoForm({
 function MatchViewTabs({
   matches,
   matchesByPhase,
+  onEdit,
 }: {
   matches: Championship['matches']
   matchesByPhase: Record<string, Championship['matches']>
+  onEdit: (match: Match) => void
 }) {
   const [tab, setTab] = useState<'bracket' | 'list'>('bracket')
 
@@ -289,14 +324,14 @@ function MatchViewTabs({
         {matches.length === 0 ? (
           <Empty title="No matches yet" hint="Use “Add match” to record the first result." />
         ) : tab === 'bracket' ? (
-          <BracketView matches={matches} />
+          <BracketView matches={matches} onSelect={onEdit} />
         ) : (
           <div className="space-y-6">
             {Object.entries(matchesByPhase).map(([phase, phaseMatches]) => (
               <section key={phase}>
                 <h4 className="font-display text-lg font-bold text-chalk-muted mb-2">{fmtPhase(phase)}</h4>
                 <div className="space-y-2">
-                  {phaseMatches.map(m => <MatchCard key={m.id} match={m} />)}
+                  {phaseMatches.map(m => <MatchCard key={m.id} match={m} onEdit={() => onEdit(m)} />)}
                 </div>
               </section>
             ))}
@@ -309,7 +344,7 @@ function MatchViewTabs({
 
 // ── Championship Detail ──────────────────────────────────────────────────────
 
-function MatchCard({ match }: { match: Championship['matches'][number] }) {
+function MatchCard({ match, onEdit }: { match: Match; onEdit: () => void }) {
   const [p1, p2] = match.participants
   const p1Wins = !!match.winnerId && match.winnerId === p1?.id
   const p2Wins = !!match.winnerId && match.winnerId === p2?.id
@@ -322,7 +357,7 @@ function MatchCard({ match }: { match: Championship['matches'][number] }) {
     cn('font-display text-4xl font-black tabular-nums leading-none w-8 text-center', wins || isDraw ? 'text-chalk' : 'text-chalk-faint')
 
   return (
-    <div className="grid grid-cols-[1fr,auto,1fr] items-center gap-3 sm:gap-5 rounded-xl bg-turf-bg/70 border border-turf-line/70 px-4 sm:px-6 py-3">
+    <div className="grid grid-cols-[1fr,auto,1fr,auto] items-center gap-3 sm:gap-5 rounded-xl bg-turf-bg/70 border border-turf-line/70 pl-4 sm:pl-6 pr-2 py-3">
       <span className={cn(nameCls(p1Wins), 'text-right')}>{p1?.name ?? '?'}</span>
       <div className="flex flex-col items-center">
         <div className="flex items-center gap-1">
@@ -338,6 +373,13 @@ function MatchCard({ match }: { match: Championship['matches'][number] }) {
         {isDraw && !hasPens && <span className="text-[11px] text-chalk-faint mt-1">Draw</span>}
       </div>
       <span className={nameCls(p2Wins)}>{p2?.name ?? '?'}</span>
+      <button
+        onClick={onEdit}
+        aria-label={`Edit ${p1?.name ?? ''} vs ${p2?.name ?? ''}`}
+        className="p-2 rounded-md text-chalk-faint hover:text-chalk hover:bg-turf-raised transition-colors"
+      >
+        <Pencil className="w-4 h-4" />
+      </button>
     </div>
   )
 }
@@ -381,6 +423,8 @@ function ChampionshipDetail({ champId }: { champId: string }) {
   const [addMatch, setAddMatch] = useState(false)
   const [addDuo, setAddDuo] = useState(false)
   const [groupsExpanded, setGroupsExpanded] = useState(true)
+  const [editMatch, setEditMatch] = useState<Match | null>(null)
+  const [deleteMatch, setDeleteMatch] = useState<Match | null>(null)
   const qc = useQueryClient()
 
   const { data, isLoading, error } = useQuery({
@@ -389,6 +433,18 @@ function ChampionshipDetail({ champId }: { champId: string }) {
   })
 
   const refetch = () => qc.invalidateQueries({ queryKey: ['championship', champId] })
+  // A result feeds rankings, records, form and every player page, so refresh everything
+  const refreshAll = () => qc.invalidateQueries()
+
+  const deleteMut = useMutation({
+    mutationFn: (m: Match) => championshipsApi.deleteMatch(champId, m.id),
+    onSuccess: () => {
+      setDeleteMatch(null)
+      toast.success('Match deleted')
+      refreshAll()
+    },
+    onError: (e: Error) => toast.error(e.message),
+  })
 
   if (isLoading) return <Loading />
   if (error) return <ErrorNote error={error} />
@@ -467,21 +523,28 @@ function ChampionshipDetail({ champId }: { champId: string }) {
             {c.players.length > 0 && (
               <div>
                 <p className="text-xs font-semibold text-chalk-faint mb-2">
-                  {c.players.length} {c.players.length === 1 ? 'player' : 'players'}
+                  {c.players.length} {c.isDuo ? (c.players.length === 1 ? 'duo' : 'duos') : c.players.length === 1 ? 'player' : 'players'}
                 </p>
                 <div className="flex flex-wrap gap-1.5">
-                  {c.players.map(p => (
-                    <Link
-                      key={p.id}
-                      to={`/players/${p.id}`}
-                      className="inline-flex items-center gap-1.5 bg-turf-raised border border-turf-line rounded-md px-2.5 py-1 text-sm text-chalk hover:border-gold/50 transition-colors"
-                    >
-                      {p.name}
-                      {p.overallRating != null && (
-                        <span className="text-xs font-bold text-chalk-faint tabular-nums">{p.overallRating}</span>
-                      )}
-                    </Link>
-                  ))}
+                  {c.players.map(p => {
+                    const chip = 'inline-flex items-center gap-1.5 bg-turf-raised border border-turf-line rounded-md px-2.5 py-1 text-sm text-chalk'
+                    const body = (
+                      <>
+                        {p.name}
+                        {p.overallRating != null && (
+                          <span className="text-xs font-bold text-chalk-faint tabular-nums">{p.overallRating}</span>
+                        )}
+                      </>
+                    )
+                    // In duo cups these are duos, which have no player page
+                    return c.isDuo ? (
+                      <span key={p.id} className={chip}>{body}</span>
+                    ) : (
+                      <Link key={p.id} to={`/players/${p.id}`} className={cn(chip, 'hover:border-gold/50 transition-colors')}>
+                        {body}
+                      </Link>
+                    )
+                  })}
                 </div>
               </div>
             )}
@@ -531,17 +594,55 @@ function ChampionshipDetail({ champId }: { champId: string }) {
 
       {/* Matches */}
       <section className="panel overflow-hidden">
-        <MatchViewTabs matches={c.matches} matchesByPhase={matchesByPhase} />
+        <MatchViewTabs matches={c.matches} matchesByPhase={matchesByPhase} onEdit={setEditMatch} />
       </section>
 
       <Dialog open={addMatch} onClose={() => setAddMatch(false)} title="Add match" className="sm:max-w-lg">
-        <AddMatchForm
-          champId={champId}
-          groups={c.groups ?? []}
+        <MatchForm
+          championship={c}
           onCancel={() => setAddMatch(false)}
-          onSuccess={() => { setAddMatch(false); refetch() }}
+          onSuccess={() => { setAddMatch(false); refreshAll() }}
         />
       </Dialog>
+
+      <Dialog open={!!editMatch} onClose={() => setEditMatch(null)} title="Edit match" className="sm:max-w-lg">
+        {editMatch && (
+          <MatchForm
+            key={editMatch.id}
+            championship={c}
+            match={editMatch}
+            onCancel={() => setEditMatch(null)}
+            onSuccess={() => { setEditMatch(null); refreshAll() }}
+            onDelete={() => { setDeleteMatch(editMatch); setEditMatch(null) }}
+          />
+        )}
+      </Dialog>
+
+      <ConfirmDialog
+        open={!!deleteMatch}
+        title="Delete match?"
+        message={
+          deleteMatch && (
+            <>
+              <span className="font-semibold text-chalk">
+                {deleteMatch.participants[0]?.name} {deleteMatch.participants[0]?.goals}–{deleteMatch.participants[1]?.goals}{' '}
+                {deleteMatch.participants[1]?.name}
+              </span>{' '}
+              ({fmtPhase(deleteMatch.matchPhase)}){' '}
+              {deleteMatch.matchPhase === 'GROUP_STAGE'
+                ? 'will be removed and taken out of the group table.'
+                : deleteMatch.matchPhase === 'FINALS'
+                  ? 'will be removed, and the cup will have no champion until a final is recorded again.'
+                  : 'will be removed from the cup and from every stat that counted it.'}{' '}
+              This can't be undone.
+            </>
+          )
+        }
+        confirmLabel="Delete match"
+        loading={deleteMut.isPending}
+        onConfirm={() => deleteMatch && deleteMut.mutate(deleteMatch)}
+        onCancel={() => setDeleteMatch(null)}
+      />
 
       <Dialog open={addDuo} onClose={() => setAddDuo(false)} title="Add duo">
         <AddDuoForm

@@ -106,7 +106,7 @@ export default function RecordsPage() {
                 title="Biggest win"
                 holder={`${d.biggestWin.playerName} over ${d.biggestWin.opponentName}`}
                 metric={d.biggestWin.scoreline ?? `+${d.biggestWin.value}`}
-                sub={`${fmtCup(d.biggestWin.championship)}, ${fmtPhase(d.biggestWin.phase).toLowerCase()}`}
+                sub={`${fmtCup(d.biggestWin.championship)}, ${fmtPhase(d.biggestWin.phase)}`}
               />
             )}
 
@@ -117,7 +117,7 @@ export default function RecordsPage() {
                 holder={d.mostGoalsInOneMatch.playerName}
                 metric={String(d.mostGoalsInOneMatch.value)}
                 unit="goals"
-                sub={`${fmtCup(d.mostGoalsInOneMatch.championship)}, ${fmtPhase(d.mostGoalsInOneMatch.phase).toLowerCase()}`}
+                sub={`${fmtCup(d.mostGoalsInOneMatch.championship)}, ${fmtPhase(d.mostGoalsInOneMatch.phase)}`}
               />
             )}
           </div>

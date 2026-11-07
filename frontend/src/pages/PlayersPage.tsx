@@ -8,6 +8,7 @@ import type { FormEntry, Player, PlayerFormData } from '../types'
 import { cn, copyToClipboard, ratingTone } from '../lib/utils'
 import Button from '../components/ui/Button'
 import Dialog from '../components/ui/Dialog'
+import ConfirmDialog from '../components/ui/ConfirmDialog'
 import RatingBar from '../components/ui/RatingBar'
 import PageHeader from '../components/ui/PageHeader'
 import PlayerLink from '../components/ui/PlayerLink'
@@ -258,6 +259,7 @@ export default function PlayersPage() {
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [createOpen, setCreateOpen] = useState(false)
   const [editPlayer, setEditPlayer] = useState<Player | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<Player | null>(null)
 
   const qc = useQueryClient()
 
@@ -306,15 +308,13 @@ export default function PlayersPage() {
     mutationFn: playersApi.remove,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['players'] })
+      setPendingDelete(null)
       toast.success('Player deleted')
     },
     onError: (e: Error) => toast.error(e.message),
   })
 
-  const handleDelete = (p: Player) => {
-    if (!confirm(`Delete "${p.name}"? This cannot be undone.`)) return
-    deleteMut.mutate(p.id)
-  }
+  const handleDelete = (p: Player) => setPendingDelete(p)
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
@@ -447,6 +447,21 @@ export default function PlayersPage() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!pendingDelete}
+        title="Delete player?"
+        message={
+          <>
+            <span className="font-semibold text-chalk">{pendingDelete?.name}</span> will be removed for good.
+            This can't be undone.
+          </>
+        }
+        confirmLabel="Delete player"
+        loading={deleteMut.isPending}
+        onConfirm={() => pendingDelete && deleteMut.mutate(pendingDelete.id)}
+        onCancel={() => setPendingDelete(null)}
+      />
 
       <Dialog open={createOpen} onClose={() => setCreateOpen(false)} title="Add player">
         <PlayerForm

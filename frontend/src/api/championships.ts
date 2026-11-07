@@ -46,6 +46,12 @@ export const championshipsApi = {
   createMatch: (champId: string, data: CreateMatchData) =>
     apiFetch<void>('POST', `/championships/${champId}/matches`, data),
 
+  updateMatch: (champId: string, matchId: string, data: CreateMatchData) =>
+    apiFetch<void>('PUT', `/championships/${champId}/matches/${matchId}`, data),
+
+  deleteMatch: (champId: string, matchId: string) =>
+    apiFetch<void>('DELETE', `/championships/${champId}/matches/${matchId}`),
+
   winners: () =>
     apiFetch<ChampionshipWinnerEntry[]>('GET', '/championships/winners'),
 

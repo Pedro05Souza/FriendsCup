@@ -225,3 +225,53 @@ export interface RecapData {
   titlesPodium: RecapTitles[]
   runnerUpPodium: RecapRunnerUp[]
 }
+
+// ── Player summary (GET /players/:id/summary) ──
+
+export type CupFinish =
+  | 'CHAMPION'
+  | 'RUNNER_UP'
+  | 'FINALIST'
+  | 'THIRD'
+  | 'FOURTH'
+  | 'ELIMINATED'
+  | 'NOT_STARTED'
+
+export interface PlayerSummaryCup {
+  championshipId: string
+  title: string
+  createdAtIso: string
+  isDuo: boolean
+  matchesPlayed: number
+  goals: number
+  finish: CupFinish
+  /** Deepest phase reached, when finish is ELIMINATED */
+  phase: string | null
+  finishRank: number
+  playedFinal: boolean
+  wonFinal: boolean
+  goldenBoot: boolean
+}
+
+export interface PlayerSummaryOpponent {
+  opponentId: string
+  opponentName: string
+  matchesPlayed: number
+  wins: number
+  draws: number
+  losses: number
+  goalsFor: number
+  goalsAgainst: number
+}
+
+export interface PlayerSummary {
+  playerId: string
+  playerName: string
+  cupsEntered: number
+  finalsPlayed: number
+  finalsWon: number
+  goldenBoots: number
+  bestFinish: PlayerSummaryCup | null
+  cups: PlayerSummaryCup[]
+  opponents: PlayerSummaryOpponent[]
+}
