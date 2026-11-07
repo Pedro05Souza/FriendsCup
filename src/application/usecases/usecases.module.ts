@@ -24,6 +24,7 @@ import { GetPlayerSummaryUsecase } from './get-player-summary.usecase';
 import { UpdateMatchUsecase } from './update-match.usecase';
 import { DeleteMatchUsecase } from './delete-match.usecase';
 import { GroupStandingsService } from './group-standings.service';
+import { PredictionsUsecase } from './predictions.usecase';
 
 @Module({
   controllers: [],
@@ -53,6 +54,7 @@ import { GroupStandingsService } from './group-standings.service';
     UpdateMatchUsecase,
     DeleteMatchUsecase,
     GroupStandingsService,
+    PredictionsUsecase,
   ],
   exports: [
     CreatePlayerUsecase,
@@ -76,6 +78,7 @@ import { GroupStandingsService } from './group-standings.service';
     GetPlayerSummaryUsecase,
     UpdateMatchUsecase,
     DeleteMatchUsecase,
+    PredictionsUsecase,
   ],
   imports: [RepositoriesModule],
 })

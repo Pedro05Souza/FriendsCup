@@ -13,6 +13,7 @@ import type {
 } from '../entities/player.entity';
 import type { GroupEntity } from '../entities/group.entity';
 import type { MatchEntity } from '../entities/match.entity';
+import type { ModelMatch } from '../prediction/poisson-model';
 
 export interface CreateChampionshipParams {
   title: string;
@@ -124,6 +125,8 @@ export interface ChampionshipRepository {
     isDuo: boolean,
   ): Promise<void>;
   getPlayerSummaryData(playerId: string): Promise<PlayerSummaryChampionshipData[]>;
+  /** Every 1v1 result (player vs player), with its cup's date. */
+  getOneVsOneResults(): Promise<ModelMatch[]>;
 }
 
 /** A match together with the championship it belongs to. */

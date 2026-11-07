@@ -16,6 +16,7 @@ import {
   StoredMatch,
   UpdateMatchParams,
 } from '../../domain/interfaces/championship.interface';
+import type { ModelMatch } from 'src/domain/prediction/poisson-model';
 import { mapToChampionshipEntity } from './mappers/championship.mapper';
 import {
   ChampionshipBriefEntity,
@@ -1366,5 +1367,33 @@ export class ChampionshipRepositoryImpl implements ChampionshipRepository {
         })),
       })),
     }));
+  }
+
+  async getOneVsOneResults(): Promise<ModelMatch[]> {
+    const matches = await this._prismaService.match.findMany({
+      where: {
+        participants: { every: { playerId: { not: null } } },
+      },
+      select: {
+        participants: { select: { playerId: true, goals: true } },
+        championship: { select: { createdAt: true } },
+      },
+    });
+
+    return matches
+      .filter((match) => match.participants.length === 2)
+      .map((match) => {
+        const [a, b] = match.participants as [
+          { playerId: string; goals: number },
+          { playerId: string; goals: number },
+        ];
+        return {
+          playerA: a.playerId,
+          playerB: b.playerId,
+          goalsA: a.goals,
+          goalsB: b.goals,
+          playedAt: match.championship.createdAt,
+        };
+      });
   }
 }

@@ -21,6 +21,11 @@ import { CreateMatchUsecase } from 'src/application/usecases/create-match.usecas
 import { UpdateMatchDto } from 'src/application/dtos/update-match.dto';
 import { UpdateMatchUsecase } from 'src/application/usecases/update-match.usecase';
 import { DeleteMatchUsecase } from 'src/application/usecases/delete-match.usecase';
+import { PredictionsUsecase } from 'src/application/usecases/predictions.usecase';
+import {
+  CupSimulationDto,
+  SimulateCupDto,
+} from 'src/application/dtos/prediction.dto';
 import { GetChampionshipWinnersUsecase } from 'src/application/usecases/get-championship-winners.usecase';
 import { GetChampionshipUsecase } from 'src/application/usecases/get-championship.usecase';
 import { ListChampionshipsUsecase } from 'src/application/usecases/list-championships.usecase';
@@ -43,7 +48,16 @@ export class ChampionshipController {
     private readonly _getAllTimeRecordsUsecase: GetAllTimeRecordsUsecase,
     private readonly _updateMatchUsecase: UpdateMatchUsecase,
     private readonly _deleteMatchUsecase: DeleteMatchUsecase,
+    private readonly _predictionsUsecase: PredictionsUsecase,
   ) {}
+
+  @Post('/simulations')
+  @HttpCode(200)
+  async simulateCup(
+    @Body() simulateCupDto: SimulateCupDto,
+  ): Promise<CupSimulationDto> {
+    return this._predictionsUsecase.simulateCup(simulateCupDto);
+  }
 
   @Get()
   async listChampionships(): Promise<ChampionshipBriefDto[]> {
