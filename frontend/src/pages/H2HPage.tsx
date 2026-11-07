@@ -11,6 +11,7 @@ import StatCard from '../components/ui/StatCard'
 import PageHeader from '../components/ui/PageHeader'
 import { Empty, ErrorNote, Loading } from '../components/ui/States'
 import { scrollToTop } from '../components/layout/Layout'
+import PredictionCard from '../components/PredictionCard'
 
 // ── Rivalries list ───────────────────────────────────────────────────────────
 
@@ -252,11 +253,13 @@ export default function H2HPage() {
             </div>
           </form>
 
-          {error && <ErrorNote error={error} />}
+          {/* "No match history" just means they haven't met; the list below says so */}
+          {error && !/no match history/i.test((error as Error).message) && <ErrorNote error={error} />}
           {isLoading && <Loading className="py-10" />}
           {data && query && (
             <H2HResult data={data as MatchHistoryDto} p1Name={nameOf(query.p1)} p2Name={nameOf(query.p2)} />
           )}
+          {query && <PredictionCard key={`${query.p1}-${query.p2}`} playerId={query.p1} opponentId={query.p2} />}
           {query && !isLoading && <MatchDetailList p1Id={query.p1} p2Id={query.p2} />}
         </div>
 

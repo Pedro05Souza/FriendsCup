@@ -11,6 +11,7 @@ import RecapPage from './pages/RecapPage'
 import H2HPage from './pages/H2HPage'
 import RankingsPage from './pages/RankingsPage'
 import RecordsPage from './pages/RecordsPage'
+import SimulatorPage from './pages/SimulatorPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -36,6 +37,7 @@ export default function App() {
             <Route path="/h2h" element={<H2HPage />} />
             <Route path="/rankings" element={<RankingsPage />} />
             <Route path="/records" element={<RecordsPage />} />
+            <Route path="/simulator" element={<SimulatorPage />} />
           </Route>
         </Routes>
       </HashRouter>

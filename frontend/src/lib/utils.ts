@@ -93,3 +93,9 @@ export async function copyToClipboard(text: string) {
 export function fmtDuo(name1: string, id1: string, name2: string, id2: string): string {
   return id1 === id2 ? name1 : `${name1} & ${name2}`
 }
+
+/** 0.4127 → "41%"; tiny but non-zero chances read "<1%" rather than "0%". */
+export function pct(p: number) {
+  if (p > 0 && p < 0.005) return '<1%'
+  return `${Math.round(p * 100)}%`
+}

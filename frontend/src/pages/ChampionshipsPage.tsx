@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -419,7 +420,14 @@ function GroupTable({ group, index }: { group: ChampionshipGroup; index: number 
   )
 }
 
-function ChampionshipDetail({ champId }: { champId: string }) {
+function ChampionshipDetail({
+  champId,
+  matchesSlot,
+}: {
+  champId: string
+  /** Full-width area below the page's two columns, where the bracket gets room to breathe */
+  matchesSlot: HTMLElement | null
+}) {
   const [addMatch, setAddMatch] = useState(false)
   const [addDuo, setAddDuo] = useState(false)
   const [groupsExpanded, setGroupsExpanded] = useState(true)
@@ -592,10 +600,14 @@ function ChampionshipDetail({ champId }: { champId: string }) {
         </section>
       )}
 
-      {/* Matches */}
-      <section className="panel overflow-hidden">
-        <MatchViewTabs matches={c.matches} matchesByPhase={matchesByPhase} onEdit={setEditMatch} />
-      </section>
+      {/* Matches: rendered full width, below the cup list and this column */}
+      {matchesSlot &&
+        createPortal(
+          <section className="panel overflow-hidden">
+            <MatchViewTabs matches={c.matches} matchesByPhase={matchesByPhase} onEdit={setEditMatch} />
+          </section>,
+          matchesSlot,
+        )}
 
       <Dialog open={addMatch} onClose={() => setAddMatch(false)} title="Add match" className="sm:max-w-lg">
         <MatchForm
@@ -724,6 +736,7 @@ export default function ChampionshipsPage() {
   const [inputId, setInputId] = useState(activeId)
   const [createOpen, setCreateOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const [matchesSlot, setMatchesSlot] = useState<HTMLDivElement | null>(null)
 
   const handleSearch = () => {
     const id = inputId.trim()
@@ -773,7 +786,7 @@ export default function ChampionshipsPage() {
 
         <div className="min-w-0">
           {activeId ? (
-            <ChampionshipDetail key={activeId} champId={activeId} />
+            <ChampionshipDetail key={activeId} champId={activeId} matchesSlot={matchesSlot} />
           ) : (
             <div className="panel border-dashed bg-transparent">
               <Empty title="Pick a championship" hint="Choose one from the list to see its results." className="py-20" />
@@ -781,6 +794,8 @@ export default function ChampionshipsPage() {
           )}
         </div>
       </div>
+
+      <div ref={setMatchesSlot} className={cn(activeId && 'mt-6')} />
 
       <Dialog open={createOpen} onClose={() => setCreateOpen(false)} title="New championship">
         <CreateChampionshipForm onCancel={() => setCreateOpen(false)} onSuccess={() => setCreateOpen(false)} />

@@ -275,3 +275,55 @@ export interface PlayerSummary {
   cups: PlayerSummaryCup[]
   opponents: PlayerSummaryOpponent[]
 }
+
+// ── Predictions (Poisson model on 1v1 results) ──
+
+export interface PredictedSide {
+  playerId: string
+  playerName: string
+  /** 1v1 matches behind this player's ratings; few means close to average */
+  matchesInModel: number
+  expectedGoals: number
+  winProbability: number
+}
+
+export interface MatchPrediction {
+  player: PredictedSide
+  opponent: PredictedSide
+  drawProbability: number
+  likelyScores: { player: number; opponent: number; probability: number }[]
+  /** P(player scores i, opponent scores j), i and j from 0 to 6 */
+  scoreMatrix: number[][]
+}
+
+export interface PowerRating {
+  playerId: string
+  playerName: string
+  matchesInModel: number
+  attack: number
+  defence: number
+  strength: number
+}
+
+export interface PowerRatings {
+  matchesUsed: number
+  halfLifeYears: number
+  ratings: PowerRating[]
+}
+
+export type CupFormat = 'KNOCKOUT' | 'GROUPS_AND_KNOCKOUT'
+
+export interface CupSimulation {
+  format: CupFormat
+  simulations: number
+  seed: number
+  odds: {
+    playerId: string
+    playerName: string
+    matchesInModel: number
+    title: number
+    final: number
+    semifinal: number
+    knockout: number
+  }[]
+}

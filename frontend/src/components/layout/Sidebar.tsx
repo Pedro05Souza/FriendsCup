@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Home, Users, Trophy, Medal, CalendarDays, Swords, ListOrdered, ScrollText } from 'lucide-react'
+import { Dices, Home, Users, Trophy, Medal, CalendarDays, Swords, ListOrdered, ScrollText } from 'lucide-react'
 import { cn } from '../../lib/utils'
 
 export const NAV_SECTIONS = [
@@ -22,6 +22,7 @@ export const NAV_SECTIONS = [
       { to: '/winners', label: 'Hall of fame', icon: Medal },
       { to: '/records', label: 'Records', icon: ScrollText },
       { to: '/recap', label: 'Year recap', icon: CalendarDays },
+      { to: '/simulator', label: 'Cup simulator', icon: Dices },
     ],
   },
 ]
