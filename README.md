@@ -11,12 +11,26 @@
 
 ---
 
+![Home page showing the latest champion, recent results, the table and form](docs/screenshots/home.png)
+
+<table>
+  <tr>
+    <td><img src="docs/screenshots/player.png" alt="Player page with career numbers, attributes, last five and trophy cabinet"></td>
+    <td><img src="docs/screenshots/championship.png" alt="Championship page with honours, roster and double-elimination bracket"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Player page</sub></td>
+    <td align="center"><sub>Championship and bracket</sub></td>
+  </tr>
+</table>
+
 ## What it does
 
 - **Championships in any format**: group stages, knockouts, and double-elimination brackets (upper and lower bracket, play-ins, third-place match), in both 1v1 and 2v2 (duo) formats.
 - **Weighted all-time ranking**: each player's score combines win rate, average goals and titles. Titles are weighted by cup prestige, so a "world cup" counts more than a state cup.
 - **Head-to-head**: an H2H matrix between all players, the match-by-match history for any pair, and the top 10 rivalries.
-- **Player profiles**: attribute ratings (attack, defense, intelligence, mentality) shown as a radar chart, recent form (last 5 matches) and a personal retrospective.
+- **Player pages**: career numbers, attribute radar, last five matches, trophy cabinet (finals record, golden boots, best finish), record against every opponent and a cup-by-cup history.
+- **Fix mistakes**: any recorded match can be edited or deleted; group tables and the champion are updated to match.
 - **Records and yearly recap**: all-time records, a winners list, and an annual "recap" with podiums such as the golden boot (most goals) and best defense.
 
 ## Architecture
@@ -43,8 +57,8 @@ All routes are prefixed with `/api`.
 
 | Resource | Endpoints |
 |---|---|
-| Players | `GET /players`, `POST /players`, `POST /players/:id`, `DELETE /players/:id`, `GET /players/rankings`, `GET /players/:id/form`, `GET /players/:id/retrospect` |
-| Championships | `GET /championships`, `POST /championships`, `GET /championships/:id`, `POST /championships/:id/matches`, `POST /championships/:id/duos`, `GET /championships/records`, `GET /championships/winners`, `GET /championships/recap/:year` |
+| Players | `GET /players`, `POST /players`, `POST /players/:id`, `DELETE /players/:id`, `GET /players/rankings`, `GET /players/:id/form`, `GET /players/:id/retrospect`, `GET /players/:id/summary` |
+| Championships | `GET /championships`, `POST /championships`, `GET /championships/:id`, `POST /championships/:id/matches`, `PUT /championships/:id/matches/:matchId`, `DELETE /championships/:id/matches/:matchId`, `POST /championships/:id/duos`, `GET /championships/records`, `GET /championships/winners`, `GET /championships/recap/:year` |
 | Matches | `GET /matches/rivalries`, `GET /matches/history/:playerId/:opponentId`, `GET /matches/history/:playerId/:opponentId/details` |
 
 ## Data model
@@ -94,9 +108,14 @@ npm run build              # outputs to ../public, served by NestJS at http://lo
 |---|---|
 | `npm run start:dev` | Backend with hot reload |
 | `npm run lint` / `npm run type-check` | ESLint / TypeScript checks |
+| `npm test` | Unit tests (Jest) |
 | `npm run prisma:studio` | Prisma Studio (database GUI) |
 | `npm run db:dump` | Saves a timestamped dump to `dumps/` |
 | `npm run db:restore` | Restores `dumps/dump.sql` |
+
+### Continuous integration
+
+Every pull request runs [GitHub Actions](.github/workflows/ci.yml): the backend is type-checked, unit-tested and built, and the frontend is type-checked and built.
 
 ## Author
 
