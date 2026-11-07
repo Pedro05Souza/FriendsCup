@@ -1,5 +1,5 @@
 import { apiFetch } from './client'
-import type { FormEntry, ListPlayersResponse, Player, PlayerFormData, PlayerRanking, PlayerSummary, RetrospectData } from '../types'
+import type { FormEntry, ListPlayersResponse, Player, PlayerFormData, PlayerRanking, PlayerSummary, RatingHistory, RetrospectData } from '../types'
 
 export const playersApi = {
   list: (page: number, name?: string) => {
@@ -37,6 +37,9 @@ export const playersApi = {
 
   summary: (id: string) =>
     apiFetch<PlayerSummary>('GET', `/players/${id}/summary`),
+
+  ratingHistory: (id: string) =>
+    apiFetch<RatingHistory>('GET', `/players/${id}/rating-history`),
 
   retrospect: (id: string) =>
     apiFetch<RetrospectData>('GET', `/players/${id}/retrospect`),

@@ -8,6 +8,7 @@ import type { FormEntry, PlayerSummaryCup, PlayerSummaryOpponent } from '../type
 import { cn, fmtCup, fmtCupFull, fmtDate, fmtFinish, fmtPhase, ratingTone } from '../lib/utils'
 import RadarChart from '../components/ui/RadarChart'
 import RatingBar from '../components/ui/RatingBar'
+import RatingChart from '../components/RatingChart'
 import { Empty, ErrorNote, Loading } from '../components/ui/States'
 
 // ── Small pieces ─────────────────────────────────────────────────────────────
@@ -226,6 +227,12 @@ export default function PlayerPage() {
   const titles = winners?.find(w => w.playerId === id)
   const titleCount = titles?.championships.reduce((s, c) => s + c.timesWon, 0) ?? 0
 
+  const { data: ratingHistory } = useQuery({
+    queryKey: ['rating-history', id],
+    queryFn: () => playersApi.ratingHistory(id),
+    enabled: !!player,
+  })
+
   // Cup history, finals record and opponents come from one request
   const { data: summary, isLoading: summaryLoading } = useQuery({
     queryKey: ['player-summary', id],
@@ -385,6 +392,25 @@ export default function PlayerPage() {
           )}
         </Panel>
       </div>
+
+      {/* ── Rating history ── */}
+      <Panel
+        title="Rating over time"
+        aside={ratingHistory && ratingHistory.snapshots.length > 0 ? 'Overall after each cup' : undefined}
+        className="mb-4"
+      >
+        <div className="px-5 sm:px-6 pb-5">
+          {!ratingHistory ? (
+            <Loading className="py-8" />
+          ) : ratingHistory.snapshots.length === 0 ? (
+            <p className="text-sm text-chalk-muted">
+              No ratings saved after a cup yet. They're saved from the latest cup's page after ratings are updated.
+            </p>
+          ) : (
+            <RatingChart snapshots={ratingHistory.snapshots} current={ratingHistory.current.overall} />
+          )}
+        </div>
+      </Panel>
 
       {/* ── Trophy cabinet ── */}
       <Panel title="Trophy cabinet" className="mb-4">

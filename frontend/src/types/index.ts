@@ -327,3 +327,46 @@ export interface CupSimulation {
     knockout: number
   }[]
 }
+
+// ── Rating history (snapshots after each cup) ──
+
+export type RatingScale = 'LEGACY_5' | 'POINTS_100'
+
+export interface RatingPoint {
+  championshipId: string | null
+  championshipTitle: string | null
+  takenAtIso: string
+  scale: RatingScale
+  /** As originally given: 1-5 for LEGACY_5, 0-100 otherwise */
+  rawOverall: number
+  /** Always 0-100 (converted for LEGACY_5) */
+  overall: number
+  attack: number | null
+  defense: number | null
+  intelligence: number | null
+  mentality: number | null
+}
+
+export interface RatingHistory {
+  playerId: string
+  playerName: string
+  snapshots: RatingPoint[]
+  current: { overall: number; attack: number; defense: number; intelligence: number; mentality: number }
+}
+
+export interface RatingChange {
+  playerId: string
+  playerName: string
+  before: RatingPoint
+  after: RatingPoint
+  delta: number
+  rawDelta: number | null
+}
+
+export interface ChampionshipRatingChanges {
+  championshipId: string
+  saved: boolean
+  canSave: boolean
+  changes: RatingChange[]
+  firstRatings: { playerId: string; playerName: string; after: RatingPoint }[]
+}

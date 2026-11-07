@@ -7,6 +7,7 @@ import type {
   RecapData,
   CupFormat,
   CupSimulation,
+  ChampionshipRatingChanges,
 } from '../types'
 
 export interface CreateChampionshipData {
@@ -53,6 +54,12 @@ export const championshipsApi = {
 
   deleteMatch: (champId: string, matchId: string) =>
     apiFetch<void>('DELETE', `/championships/${champId}/matches/${matchId}`),
+
+  ratingChanges: (champId: string) =>
+    apiFetch<ChampionshipRatingChanges>('GET', `/championships/${champId}/rating-changes`),
+
+  saveRatings: (champId: string) =>
+    apiFetch<{ saved: number }>('POST', `/championships/${champId}/rating-snapshots`),
 
   simulate: (data: { playerIds: string[]; format: CupFormat; simulations?: number }) =>
     apiFetch<CupSimulation>('POST', '/championships/simulations', data),

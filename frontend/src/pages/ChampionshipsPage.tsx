@@ -12,6 +12,7 @@ import Button from '../components/ui/Button'
 import Dialog from '../components/ui/Dialog'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import BracketView from '../components/BracketView'
+import RatingChanges from '../components/RatingChanges'
 import PageHeader from '../components/ui/PageHeader'
 import { Empty, ErrorNote, Loading } from '../components/ui/States'
 
@@ -577,6 +578,8 @@ function ChampionshipDetail({
           </div>
         )}
       </section>
+
+      <RatingChanges championshipId={c.id} />
 
       {/* Groups */}
       {c.groups && c.groups.length > 0 && (
