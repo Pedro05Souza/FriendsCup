@@ -115,6 +115,61 @@ export interface ChampionshipRepository {
   getTopRivalries(limit: number): Promise<RivalryData[]>;
   getRecentMatchesForPlayer(playerId: string, limit: number): Promise<PlayerFormData[]>;
   getMatchHistoryDetailForPlayers(p1Id: string, p2Id: string): Promise<H2HMatchDetailData[]>;
+  getMatchById(matchId: string): Promise<StoredMatch | null>;
+  updateMatch(params: UpdateMatchParams): Promise<void>;
+  deleteMatch(matchId: string): Promise<void>;
+  setChampionshipWinner(
+    championshipId: string,
+    winnerId: string | null,
+    isDuo: boolean,
+  ): Promise<void>;
+  getPlayerSummaryData(playerId: string): Promise<PlayerSummaryChampionshipData[]>;
+}
+
+/** A match together with the championship it belongs to. */
+export interface StoredMatch extends MatchEntity {
+  championshipId: string;
+}
+
+export interface UpdateMatchParams {
+  matchId: string;
+  matchPhase: MatchPhase;
+  isDuo: boolean;
+  /** Player id (1v1) or duo id (2v2) of the winner; null for a draw. */
+  winnerId: string | null;
+  participants: Array<{
+    participantId: string;
+    goals: number;
+    penaltyShootoutGoals?: number;
+  }>;
+}
+
+export interface PlayerSummaryParticipantData {
+  /** Player id in 1v1 matches, duo id in 2v2 matches. */
+  id: string;
+  name: string;
+  goals: number;
+  penaltyShootoutGoals: number;
+  isDuo: boolean;
+  /** The players behind this side: one for a player, two for a duo. */
+  memberIds: string[];
+}
+
+export interface PlayerSummaryMatchData {
+  id: string;
+  matchPhase: MatchPhase;
+  winnerId: string | null;
+  participants: PlayerSummaryParticipantData[];
+}
+
+export interface PlayerSummaryChampionshipData {
+  id: string;
+  title: string;
+  createdAt: DateTime;
+  isDuo: boolean;
+  /** Player id or duo id of the champion. */
+  winnerId: string | null;
+  matches: PlayerSummaryMatchData[];
 }
 
 export interface PlayerFormData {

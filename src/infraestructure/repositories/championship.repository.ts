@@ -11,7 +11,10 @@ import {
   CreateMatchParticipant,
   H2HMatchDetailData,
   PlayerFormData,
+  PlayerSummaryChampionshipData,
   RivalryData,
+  StoredMatch,
+  UpdateMatchParams,
 } from '../../domain/interfaces/championship.interface';
 import { mapToChampionshipEntity } from './mappers/championship.mapper';
 import {
@@ -1226,5 +1229,142 @@ export class ChampionshipRepositoryImpl implements ChampionshipRepository {
     });
 
     return matches.map(mapToMatchEntity);
+  }
+
+  async getMatchById(matchId: string): Promise<StoredMatch | null> {
+    const match = await this._prismaService.match.findUnique({
+      where: { id: matchId },
+      include: {
+        participants: {
+          select: {
+            id: true,
+            penaltyShootoutGoals: true,
+            goals: true,
+            playerId: true,
+            duoId: true,
+          },
+        },
+      },
+    });
+
+    if (match === null) {
+      return null;
+    }
+
+    return { ...mapToMatchEntity(match), championshipId: match.championshipId };
+  }
+
+  async updateMatch(params: UpdateMatchParams): Promise<void> {
+    await this._prismaService.$transaction([
+      this._prismaService.matchParticipant.deleteMany({
+        where: { matchId: params.matchId },
+      }),
+      this._prismaService.match.update({
+        where: { id: params.matchId },
+        data: {
+          matchPhase: params.matchPhase,
+          winnerId: params.isDuo ? null : params.winnerId,
+          duoWinnerId: params.isDuo ? params.winnerId : null,
+          participants: {
+            create: params.participants.map((participant) => ({
+              playerId: params.isDuo ? undefined : participant.participantId,
+              duoId: params.isDuo ? participant.participantId : undefined,
+              goals: participant.goals,
+              penaltyShootoutGoals: participant.penaltyShootoutGoals,
+            })),
+          },
+        },
+      }),
+    ]);
+  }
+
+  async deleteMatch(matchId: string): Promise<void> {
+    await this._prismaService.$transaction([
+      this._prismaService.matchParticipant.deleteMany({ where: { matchId } }),
+      this._prismaService.match.delete({ where: { id: matchId } }),
+    ]);
+  }
+
+  async setChampionshipWinner(
+    championshipId: string,
+    winnerId: string | null,
+    isDuo: boolean,
+  ): Promise<void> {
+    await this._prismaService.championship.update({
+      where: { id: championshipId },
+      data: {
+        winnerId: isDuo ? null : winnerId,
+        duoWinnerId: isDuo ? winnerId : null,
+      },
+    });
+  }
+
+  async getPlayerSummaryData(
+    playerId: string,
+  ): Promise<PlayerSummaryChampionshipData[]> {
+    const inDuo = { OR: [{ player1Id: playerId }, { player2Id: playerId }] };
+
+    const championships = await this._prismaService.championship.findMany({
+      where: {
+        OR: [
+          { players: { some: { id: playerId } } },
+          { duos: { some: inDuo } },
+          {
+            matches: {
+              some: {
+                participants: {
+                  some: { OR: [{ playerId }, { duo: inDuo }] },
+                },
+              },
+            },
+          },
+        ],
+      },
+      include: {
+        matches: {
+          include: {
+            participants: {
+              include: {
+                player: { select: { id: true, name: true } },
+                duo: {
+                  select: {
+                    id: true,
+                    name: true,
+                    player1Id: true,
+                    player2Id: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return championships.map((championship) => ({
+      id: championship.id,
+      title: championship.title,
+      createdAt: DateTime.fromJSDate(championship.createdAt),
+      isDuo: championship.isDuo,
+      winnerId: championship.winnerId ?? championship.duoWinnerId ?? null,
+      matches: championship.matches.map((match) => ({
+        id: match.id,
+        matchPhase: match.matchPhase as MatchPhase,
+        winnerId: match.winnerId ?? match.duoWinnerId ?? null,
+        participants: match.participants.map((participant) => ({
+          id: participant.playerId ?? participant.duoId ?? participant.id,
+          name: participant.player?.name ?? participant.duo?.name ?? 'Unknown',
+          goals: participant.goals,
+          penaltyShootoutGoals: participant.penaltyShootoutGoals ?? 0,
+          isDuo: participant.duo !== null,
+          memberIds: participant.player
+            ? [participant.player.id]
+            : participant.duo
+              ? [participant.duo.player1Id, participant.duo.player2Id]
+              : [],
+        })),
+      })),
+    }));
   }
 }

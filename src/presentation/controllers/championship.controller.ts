@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Post,
+  Put,
+} from '@nestjs/common';
 import { AllTimeRecordsDto } from 'src/application/dtos/all-time-records.dto';
 import { ChampionshipBriefDto } from 'src/application/dtos/championship-brief.dto';
 import { ChampionshipWinnersResponseDto } from 'src/application/dtos/championship-winners.dto';
@@ -9,6 +18,9 @@ import { CreateMatchDto } from 'src/application/dtos/create-match.dto';
 import { CreateChampionshipUsecase } from 'src/application/usecases/create-championship.usecase';
 import { CreateDuoUsecase } from 'src/application/usecases/create-duo.usecase';
 import { CreateMatchUsecase } from 'src/application/usecases/create-match.usecase';
+import { UpdateMatchDto } from 'src/application/dtos/update-match.dto';
+import { UpdateMatchUsecase } from 'src/application/usecases/update-match.usecase';
+import { DeleteMatchUsecase } from 'src/application/usecases/delete-match.usecase';
 import { GetChampionshipWinnersUsecase } from 'src/application/usecases/get-championship-winners.usecase';
 import { GetChampionshipUsecase } from 'src/application/usecases/get-championship.usecase';
 import { ListChampionshipsUsecase } from 'src/application/usecases/list-championships.usecase';
@@ -29,6 +41,8 @@ export class ChampionshipController {
     private readonly _recapUsecase: RecapUsecase,
     private readonly _listChampionshipsUsecase: ListChampionshipsUsecase,
     private readonly _getAllTimeRecordsUsecase: GetAllTimeRecordsUsecase,
+    private readonly _updateMatchUsecase: UpdateMatchUsecase,
+    private readonly _deleteMatchUsecase: DeleteMatchUsecase,
   ) {}
 
   @Get()
@@ -76,6 +90,28 @@ export class ChampionshipController {
     @Body() createMatchDto: CreateMatchDto,
   ): Promise<void> {
     return this._createMatchUsecase.createMatch(championshipId, createMatchDto);
+  }
+
+  @Put('/:championshipId/matches/:matchId')
+  async updateMatch(
+    @Param('championshipId') championshipId: string,
+    @Param('matchId') matchId: string,
+    @Body() updateMatchDto: UpdateMatchDto,
+  ): Promise<void> {
+    return this._updateMatchUsecase.updateMatch(
+      championshipId,
+      matchId,
+      updateMatchDto,
+    );
+  }
+
+  @Delete('/:championshipId/matches/:matchId')
+  @HttpCode(204)
+  async deleteMatch(
+    @Param('championshipId') championshipId: string,
+    @Param('matchId') matchId: string,
+  ): Promise<void> {
+    return this._deleteMatchUsecase.deleteMatch(championshipId, matchId);
   }
 
   @Get('/recap/:year')

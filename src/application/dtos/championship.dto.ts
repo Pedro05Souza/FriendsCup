@@ -21,6 +21,7 @@ export const championshipDtoSchema = z.object({
   id: z.string(),
   title: z.string(),
   createdAtIso: z.string().datetime(),
+  isDuo: z.boolean(),
   championshipWinner: z
     .object({
       id: z.string(),
