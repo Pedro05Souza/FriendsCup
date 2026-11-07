@@ -22,6 +22,8 @@ import { UpdateMatchDto } from 'src/application/dtos/update-match.dto';
 import { UpdateMatchUsecase } from 'src/application/usecases/update-match.usecase';
 import { DeleteMatchUsecase } from 'src/application/usecases/delete-match.usecase';
 import { PredictionsUsecase } from 'src/application/usecases/predictions.usecase';
+import { RatingHistoryUsecase } from 'src/application/usecases/rating-history.usecase';
+import { ChampionshipRatingChangesDto } from 'src/application/dtos/rating-history.dto';
 import {
   CupSimulationDto,
   SimulateCupDto,
@@ -49,7 +51,22 @@ export class ChampionshipController {
     private readonly _updateMatchUsecase: UpdateMatchUsecase,
     private readonly _deleteMatchUsecase: DeleteMatchUsecase,
     private readonly _predictionsUsecase: PredictionsUsecase,
+    private readonly _ratingHistoryUsecase: RatingHistoryUsecase,
   ) {}
+
+  @Get('/:championshipId/rating-changes')
+  async getRatingChanges(
+    @Param('championshipId') championshipId: string,
+  ): Promise<ChampionshipRatingChangesDto> {
+    return this._ratingHistoryUsecase.getChampionshipChanges(championshipId);
+  }
+
+  @Post('/:championshipId/rating-snapshots')
+  async saveRatings(
+    @Param('championshipId') championshipId: string,
+  ): Promise<{ saved: number }> {
+    return this._ratingHistoryUsecase.saveChampionshipRatings(championshipId);
+  }
 
   @Post('/simulations')
   @HttpCode(200)

@@ -21,6 +21,8 @@ import { GetPlayerFormUsecase } from 'src/application/usecases/get-player-form.u
 import { PlayerFormDto } from 'src/application/dtos/player-form.dto';
 import { GetPlayerSummaryUsecase } from 'src/application/usecases/get-player-summary.usecase';
 import { PlayerSummaryDto } from 'src/application/dtos/player-summary.dto';
+import { RatingHistoryUsecase } from 'src/application/usecases/rating-history.usecase';
+import { RatingHistoryDto } from 'src/application/dtos/rating-history.dto';
 import {
   RetrospectData,
   RetrospectUsecase,
@@ -37,6 +39,7 @@ export class PlayerController {
     private readonly _getPlayerRankingsUsecase: GetPlayerRankingsUsecase,
     private readonly _getPlayerFormUsecase: GetPlayerFormUsecase,
     private readonly _getPlayerSummaryUsecase: GetPlayerSummaryUsecase,
+    private readonly _ratingHistoryUsecase: RatingHistoryUsecase,
   ) {}
 
   @Post()
@@ -78,6 +81,11 @@ export class PlayerController {
   @Get('/:id/summary')
   async getSummary(@Param('id') id: string): Promise<PlayerSummaryDto> {
     return this._getPlayerSummaryUsecase.getPlayerSummary(id);
+  }
+
+  @Get('/:id/rating-history')
+  async getRatingHistory(@Param('id') id: string): Promise<RatingHistoryDto> {
+    return this._ratingHistoryUsecase.getPlayerHistory(id);
   }
 
   @Get('/:id/retrospect')

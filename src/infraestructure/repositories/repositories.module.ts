@@ -4,6 +4,8 @@ import { ServicesModule } from 'src/application/services/services.module';
 import { playerRepositoryToken } from '../../domain/interfaces/player.interface';
 import { championshipRepositoryToken } from '../../domain/interfaces/championship.interface';
 import { ChampionshipRepositoryImpl } from './championship.repository';
+import { ratingSnapshotRepositoryToken } from '../../domain/interfaces/rating-snapshot.interface';
+import { RatingSnapshotRepositoryImpl } from './rating-snapshot.repository';
 
 @Module({
   imports: [ServicesModule],
@@ -17,7 +19,15 @@ import { ChampionshipRepositoryImpl } from './championship.repository';
       provide: championshipRepositoryToken,
       useClass: ChampionshipRepositoryImpl,
     },
+    {
+      provide: ratingSnapshotRepositoryToken,
+      useClass: RatingSnapshotRepositoryImpl,
+    },
   ],
-  exports: [playerRepositoryToken, championshipRepositoryToken],
+  exports: [
+    playerRepositoryToken,
+    championshipRepositoryToken,
+    ratingSnapshotRepositoryToken,
+  ],
 })
 export class RepositoriesModule {}
