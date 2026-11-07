@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import { Search, Plus, ChevronDown, Trophy, Goal, Users, Pencil, Trash2 } from 'lucide-react'
 import { championshipsApi, type CreateMatchData } from '../api/championships'
 import { playersApi } from '../api/players'
-import type { Championship, ChampionshipBrief, ChampionshipGroup, Match, Player } from '../types'
+import type { Championship, ChampionshipBrief, ChampionshipGroup, Match, Player, RatingPoint } from '../types'
 import { cn, fmtDate, fmtPhase, fmtDuo, fmtCup, fmtCupFull, ALL_PHASES, TOURNAMENT_NAMES } from '../lib/utils'
 import Button from '../components/ui/Button'
 import Dialog from '../components/ui/Dialog'
@@ -386,6 +386,24 @@ function MatchCard({ match, onEdit }: { match: Match; onEdit: () => void }) {
   )
 }
 
+/**
+ * A player's rating going into a cup. The 0-100 overall only exists from
+ * mid-2025, so earlier cups show N/A, with the old 1-5 rating on hover.
+ */
+function EnteringRating({ rating }: { rating: RatingPoint | null }) {
+  if (rating?.scale === 'POINTS_100') {
+    return <span className="text-xs font-bold text-chalk-faint tabular-nums">{rating.overall}</span>
+  }
+  const why = rating
+    ? `No 0–100 rating yet: rated ${rating.rawOverall.toFixed(1)} on the old 1–5 scale`
+    : 'Not rated yet'
+  return (
+    <span title={why} aria-label={why} className="text-[10px] font-semibold uppercase tracking-wide text-chalk-faint/70">
+      N/A
+    </span>
+  )
+}
+
 function GroupTable({ group, index }: { group: ChampionshipGroup; index: number }) {
   const sorted = [...group.players].sort(
     (a, b) => b.points - a.points || b.goalDifference - a.goalDifference,
@@ -440,6 +458,13 @@ function ChampionshipDetail({
     queryKey: ['championship', champId],
     queryFn: () => championshipsApi.get(champId),
   })
+
+  // Ratings as players entered this cup (shared with the "Ratings after this cup" panel)
+  const { data: ratings } = useQuery({
+    queryKey: ['rating-changes', champId],
+    queryFn: () => championshipsApi.ratingChanges(champId),
+  })
+  const entering = new Map(ratings?.enteringRatings.map(e => [e.playerId, e.rating]) ?? [])
 
   const refetch = () => qc.invalidateQueries({ queryKey: ['championship', champId] })
   // A result feeds rankings, records, form and every player page, so refresh everything
@@ -533,6 +558,7 @@ function ChampionshipDetail({
               <div>
                 <p className="text-xs font-semibold text-chalk-faint mb-2">
                   {c.players.length} {c.isDuo ? (c.players.length === 1 ? 'duo' : 'duos') : c.players.length === 1 ? 'player' : 'players'}
+                  {!c.isDuo && <span className="font-normal">, with their rating going into this cup</span>}
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {c.players.map(p => {
@@ -540,9 +566,7 @@ function ChampionshipDetail({
                     const body = (
                       <>
                         {p.name}
-                        {p.overallRating != null && (
-                          <span className="text-xs font-bold text-chalk-faint tabular-nums">{p.overallRating}</span>
-                        )}
+                        {!c.isDuo && ratings && <EnteringRating rating={entering.get(p.id) ?? null} />}
                       </>
                     )
                     // In duo cups these are duos, which have no player page

@@ -368,5 +368,7 @@ export interface ChampionshipRatingChanges {
   saved: boolean
   canSave: boolean
   changes: RatingChange[]
+  /** Each player's rating going into the cup; null if they had none yet. Empty for duo cups. */
+  enteringRatings: { playerId: string; rating: RatingPoint | null }[]
   firstRatings: { playerId: string; playerName: string; after: RatingPoint }[]
 }

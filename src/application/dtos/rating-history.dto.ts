@@ -51,6 +51,13 @@ export const championshipRatingChangesDtoSchema = z.object({
   canSave: z.boolean(),
   /** Players rated after this cup who had an earlier rating, biggest rise first. */
   changes: z.array(ratingChangeSchema),
+  /**
+   * Each player's rating going into this cup (their latest rating from before
+   * it), or null if they had none yet. Empty for duo cups.
+   */
+  enteringRatings: z.array(
+    z.object({ playerId: z.string(), rating: ratingPointSchema.nullable() }),
+  ),
   /** Players rated for the first time after this cup. */
   firstRatings: z.array(
     z.object({

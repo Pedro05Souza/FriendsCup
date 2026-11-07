@@ -135,11 +135,26 @@ export class RatingHistoryUsecase {
       (a, b) => b.delta - a.delta || a.playerName.localeCompare(b.playerName),
     );
 
+    // What each player was rated as they entered the cup
+    const participants =
+      await this._championshipRepository.findParticipantsByChampionshipId(
+        championshipId,
+      );
+    const enteringRatings = participants
+      .filter((p) => !('player1' in p))
+      .map((p) => {
+        const before = all
+          .filter((s) => s.playerId === p.id && s.takenAt.toMillis() < cupTime)
+          .at(-1);
+        return { playerId: p.id, rating: before ? toPoint(before) : null };
+      });
+
     return {
       championshipId,
       saved: afterThisCup.length > 0,
       canSave: await this._isLatestCup(championshipId),
       changes,
+      enteringRatings,
       firstRatings,
     };
   }

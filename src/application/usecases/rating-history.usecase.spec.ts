@@ -41,7 +41,10 @@ function snap(
   };
 }
 
-function setup(snapshots: RatingSnapshotEntity[]): {
+function setup(
+  snapshots: RatingSnapshotEntity[],
+  participants?: unknown[],
+): {
   usecase: RatingHistoryUsecase;
   saved: jest.Mock;
 } {
@@ -71,9 +74,12 @@ function setup(snapshots: RatingSnapshotEntity[]): {
       async (id: string) => cups.find((c) => c.id === id) ?? null,
     ),
     listChampionships: jest.fn(async () => cups),
-    findParticipantsByChampionshipId: jest.fn(async () => [
-      { id: 'duo-1', name: 'Leo', player1: leo, player2: leo },
-    ]),
+    findParticipantsByChampionshipId: jest.fn(
+      async () =>
+        participants ?? [
+          { id: 'duo-1', name: 'Leo', player1: leo, player2: leo },
+        ],
+    ),
   } as unknown as ChampionshipRepository;
 
   return {
@@ -153,5 +159,39 @@ describe('RatingHistoryUsecase', () => {
         mentality: 72,
       },
     ]);
+  });
+
+  it("gives each player's rating going into the cup", async () => {
+    const player = (id: string): PlayerEntity =>
+      new PlayerEntity({
+        id,
+        name: id,
+        attack: 50,
+        defense: 50,
+        intelligence: 50,
+        mentality: 50,
+      });
+    const { usecase } = setup(history, [
+      player('leo'),
+      player('cruz'),
+      player('new'),
+    ]);
+    const entering = (await usecase.getChampionshipChanges('chilela'))
+      .enteringRatings;
+    // Leo enters Chilela with his rating after Polar, Cruz with his old-scale one
+    expect(
+      entering.find((e) => e.playerId === 'leo')!.rating!.championshipId,
+    ).toBe('polar');
+    expect(entering.find((e) => e.playerId === 'cruz')!.rating!.scale).toBe(
+      'LEGACY_5',
+    );
+    expect(entering.find((e) => e.playerId === 'new')!.rating).toBeNull();
+  });
+
+  it('lists no entering ratings for duo cups', async () => {
+    const { usecase } = setup(history);
+    expect(
+      (await usecase.getChampionshipChanges('chilela')).enteringRatings,
+    ).toEqual([]);
   });
 });
