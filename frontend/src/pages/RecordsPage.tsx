@@ -1,34 +1,40 @@
 import { useQuery } from '@tanstack/react-query'
+import { Goal, Gamepad2, Trophy, TrendingUp, Zap, Flame, type LucideIcon } from 'lucide-react'
 import { championshipsApi } from '../api/championships'
 import type { AllTimeRecords } from '../types'
-import { fmtPhase } from '../lib/utils'
-import Spinner from '../components/ui/Spinner'
+import { cn, fmtCup, fmtPhase } from '../lib/utils'
+import PageHeader from '../components/ui/PageHeader'
+import { ErrorNote, Loading } from '../components/ui/States'
 
 interface RecordCardProps {
-  icon: string
+  icon: LucideIcon
   title: string
   holder: string
   metric: string
+  unit?: string
   sub?: string
+  featured?: boolean
 }
 
-function RecordCard({ icon, title, holder, metric, sub }: RecordCardProps) {
+function RecordCard({ icon: Icon, title, holder, metric, unit, sub, featured }: RecordCardProps) {
   return (
-    <div className="bg-gh-surface border border-gh-border rounded-lg p-5">
-      <div className="flex items-start gap-3">
-        <span className="text-2xl leading-none mt-0.5">{icon}</span>
-        <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1">
-            {title}
-          </p>
-          <p className="text-base font-bold text-zinc-100 truncate">{holder}</p>
-          <p className="text-2xl font-bold text-emerald-400 mt-0.5">{metric}</p>
-          {sub && (
-            <p className="text-xs text-zinc-600 mt-1 truncate">{sub}</p>
-          )}
-        </div>
+    <article
+      className={cn(
+        'panel p-6 flex flex-col',
+        featured && 'border-gold/35 bg-[linear-gradient(160deg,rgba(242,193,78,0.08),transparent_55%)]',
+      )}
+    >
+      <div className="flex items-center gap-2 text-sm font-medium text-chalk-muted">
+        <Icon className="w-4 h-4 text-gold" />
+        {title}
       </div>
-    </div>
+      <p className="mt-5 font-display font-black leading-[0.85] tabular-nums text-chalk text-7xl">
+        {metric}
+        {unit && <span className="ml-2 text-2xl font-bold text-chalk-muted">{unit}</span>}
+      </p>
+      <p className="mt-4 text-lg font-semibold text-chalk truncate">{holder}</p>
+      {sub && <p className="text-sm text-chalk-faint mt-0.5 truncate">{sub}</p>}
+    </article>
   )
 }
 
@@ -40,18 +46,13 @@ export default function RecordsPage() {
 
   return (
     <>
-      <div className="mb-6">
-        <h1 className="text-xl font-bold text-zinc-100">All-Time Records</h1>
-        <p className="text-sm text-zinc-500 mt-0.5">The best (and worst) performances across every tournament</p>
-      </div>
+      <PageHeader
+        title="All-time records"
+        description="The numbers that have survived every cup so far. Go and break one."
+      />
 
-      {isLoading && <div className="flex justify-center py-16"><Spinner /></div>}
-
-      {error && (
-        <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-4">
-          {(error as Error).message}
-        </p>
-      )}
+      {isLoading && <Loading />}
+      {error && <ErrorNote error={error} />}
 
       {data && (() => {
         const d = data as AllTimeRecords
@@ -59,58 +60,64 @@ export default function RecordsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {d.topScorer && (
               <RecordCard
-                icon="⚽"
-                title="Top Scorer (All Time)"
+                featured
+                icon={Goal}
+                title="Top scorer"
                 holder={d.topScorer.playerName}
-                metric={`${d.topScorer.value} goals`}
-              />
-            )}
-
-            {d.mostMatchesPlayed && (
-              <RecordCard
-                icon="🎮"
-                title="Most Matches Played"
-                holder={d.mostMatchesPlayed.playerName}
-                metric={`${d.mostMatchesPlayed.value} matches`}
+                metric={String(d.topScorer.value)}
+                unit="goals"
               />
             )}
 
             {d.mostTitles && (
               <RecordCard
-                icon="🏆"
-                title="Most Titles"
+                featured
+                icon={Trophy}
+                title="Most titles"
                 holder={d.mostTitles.playerName}
-                metric={`${d.mostTitles.value} title${d.mostTitles.value !== 1 ? 's' : ''}`}
+                metric={String(d.mostTitles.value)}
+                unit={d.mostTitles.value === 1 ? 'title' : 'titles'}
               />
             )}
 
             {d.highestWinRate && (
               <RecordCard
-                icon="📈"
-                title="Highest Win Rate"
+                icon={TrendingUp}
+                title="Highest win rate"
                 holder={d.highestWinRate.playerName}
                 metric={`${d.highestWinRate.winRate}%`}
-                sub={`in ${d.highestWinRate.matchesPlayed} matches`}
+                sub={`Across ${d.highestWinRate.matchesPlayed} matches`}
+              />
+            )}
+
+            {d.mostMatchesPlayed && (
+              <RecordCard
+                icon={Gamepad2}
+                title="Most matches played"
+                holder={d.mostMatchesPlayed.playerName}
+                metric={String(d.mostMatchesPlayed.value)}
+                unit="matches"
               />
             )}
 
             {d.biggestWin && (
               <RecordCard
-                icon="💥"
-                title="Biggest Win"
-                holder={d.biggestWin.playerName}
+                icon={Zap}
+                title="Biggest win"
+                holder={`${d.biggestWin.playerName} over ${d.biggestWin.opponentName}`}
                 metric={d.biggestWin.scoreline ?? `+${d.biggestWin.value}`}
-                sub={`vs ${d.biggestWin.opponentName} · ${d.biggestWin.championship} · ${fmtPhase(d.biggestWin.phase)}`}
+                sub={`${fmtCup(d.biggestWin.championship)}, ${fmtPhase(d.biggestWin.phase).toLowerCase()}`}
               />
             )}
 
             {d.mostGoalsInOneMatch && (
               <RecordCard
-                icon="🔥"
-                title="Most Goals in One Match"
+                icon={Flame}
+                title="Most goals in one match"
                 holder={d.mostGoalsInOneMatch.playerName}
-                metric={`${d.mostGoalsInOneMatch.value} goals`}
-                sub={`${d.mostGoalsInOneMatch.championship} · ${fmtPhase(d.mostGoalsInOneMatch.phase)}`}
+                metric={String(d.mostGoalsInOneMatch.value)}
+                unit="goals"
+                sub={`${fmtCup(d.mostGoalsInOneMatch.championship)}, ${fmtPhase(d.mostGoalsInOneMatch.phase).toLowerCase()}`}
               />
             )}
           </div>

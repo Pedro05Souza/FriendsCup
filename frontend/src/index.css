@@ -7,32 +7,98 @@
     box-sizing: border-box;
   }
 
+  html {
+    color-scheme: dark;
+  }
+
   body {
-    @apply bg-gh-bg text-zinc-100 antialiased;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    @apply bg-turf-bg text-chalk antialiased font-sans;
+  }
+
+  :focus-visible {
+    outline: 2px solid theme('colors.gold.DEFAULT');
+    outline-offset: 2px;
+  }
+
+  select option {
+    @apply bg-turf-surface text-chalk;
+  }
+
+  ::selection {
+    @apply bg-gold/30;
   }
 
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-gh-bg;
+    background: transparent;
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-gh-elevated rounded-full;
+    @apply bg-turf-line rounded-full;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-zinc-600;
+    @apply bg-chalk-faint;
+  }
+}
+
+@layer components {
+  /* Card-level container. Inner elements use smaller radii. */
+  .panel {
+    @apply bg-turf-surface border border-turf-line rounded-2xl;
+  }
+
+  .field {
+    @apply w-full px-3 py-2 rounded-lg border border-turf-line bg-turf-bg text-sm text-chalk
+      placeholder:text-chalk-faint transition-colors
+      focus:outline-none focus:border-gold/70 focus:ring-2 focus:ring-gold/20;
+  }
+
+  .field-label {
+    @apply block text-[13px] font-semibold text-chalk-muted mb-1.5;
+  }
+
+  .panel-title {
+    @apply font-display text-2xl font-bold leading-none text-chalk;
+  }
+
+  /* Faint mowing stripes, like a pitch seen from the stands */
+  .pitch-stripes {
+    background-image: repeating-linear-gradient(
+      90deg,
+      rgba(238, 243, 239, 0.014) 0,
+      rgba(238, 243, 239, 0.014) 72px,
+      transparent 72px,
+      transparent 144px
+    );
   }
 }
 
 @layer utilities {
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: theme('colors.gh.elevated') theme('colors.gh.bg');
+    scrollbar-color: theme('colors.turf.line') transparent;
+  }
+
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

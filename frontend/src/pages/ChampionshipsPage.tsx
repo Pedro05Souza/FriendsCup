@@ -1,16 +1,16 @@
 import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Search, Plus, ChevronDown, ChevronUp, Trophy } from 'lucide-react'
+import { Search, Plus, ChevronDown, Trophy, Goal, Users } from 'lucide-react'
 import { championshipsApi, type CreateMatchData } from '../api/championships'
 import { playersApi } from '../api/players'
 import type { Championship, ChampionshipBrief, ChampionshipGroup, Player } from '../types'
-import { cn, fmtDate, fmtPhase, fmtDuo, ALL_PHASES, TOURNAMENT_NAMES } from '../lib/utils'
+import { cn, fmtDate, fmtPhase, fmtDuo, fmtCup, fmtCupFull, ALL_PHASES, TOURNAMENT_NAMES } from '../lib/utils'
 import Button from '../components/ui/Button'
-import Badge from '../components/ui/Badge'
 import Dialog from '../components/ui/Dialog'
-import Spinner from '../components/ui/Spinner'
 import BracketView from '../components/BracketView'
+import PageHeader from '../components/ui/PageHeader'
+import { Empty, ErrorNote, Loading } from '../components/ui/States'
 
 // ── Create Championship Form ─────────────────────────────────────────────────
 
@@ -23,11 +23,13 @@ function CreateChampionshipForm({
 }) {
   const [title, setTitle] = useState<string>(TOURNAMENT_NAMES[0])
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
+  const qc = useQueryClient()
 
   const mut = useMutation({
     mutationFn: championshipsApi.create,
     onSuccess: () => {
-      toast.success('Championship created — look it up by ID to manage it')
+      qc.invalidateQueries({ queryKey: ['championships'] })
+      toast.success('Championship created')
       onSuccess()
     },
     onError: (e: Error) => toast.error(e.message),
@@ -42,69 +44,20 @@ function CreateChampionshipForm({
       className="space-y-4"
     >
       <div>
-        <label className="block text-xs font-medium text-zinc-400 mb-1.5">Tournament</label>
-        <select
-          value={title}
-          onChange={e => setTitle(e.target.value)}
-          className="w-full px-3 py-2 rounded-md border border-gh-border bg-gh-bg text-sm text-zinc-100 focus:outline-none focus:border-emerald-500"
-        >
-          {TOURNAMENT_NAMES.map(t => <option key={t} value={t}>{t}</option>)}
+        <label htmlFor="champ-title" className="field-label">Cup</label>
+        <select id="champ-title" value={title} onChange={e => setTitle(e.target.value)} className="field">
+          {TOURNAMENT_NAMES.map(t => <option key={t} value={t}>{fmtCup(t)}</option>)}
         </select>
       </div>
       <div>
-        <label className="block text-xs font-medium text-zinc-400 mb-1.5">Date</label>
-        <input
-          type="date"
-          value={date}
-          onChange={e => setDate(e.target.value)}
-          className="w-full px-3 py-2 rounded-md border border-gh-border bg-gh-bg text-sm text-zinc-100 focus:outline-none focus:border-emerald-500"
-        />
+        <label htmlFor="champ-date" className="field-label">Date</label>
+        <input id="champ-date" type="date" value={date} onChange={e => setDate(e.target.value)} className="field" />
       </div>
       <div className="flex gap-2 justify-end pt-2">
         <Button variant="ghost" type="button" onClick={onCancel}>Cancel</Button>
-        <Button variant="primary" type="submit" loading={mut.isPending}>Create</Button>
+        <Button variant="primary" type="submit" loading={mut.isPending}>Create championship</Button>
       </div>
     </form>
-  )
-}
-
-// ── Player picker ────────────────────────────────────────────────────────────
-
-function PlayerPicker({
-  label,
-  value,
-  onChange,
-  players,
-}: {
-  label: string
-  value: string
-  onChange: (id: string) => void
-  players: Player[]
-}) {
-  const filtered = players
-  const selected = players.find(p => p.id === value)
-
-  return (
-    <div>
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">{label}</p>
-      <div className="relative">
-        <select
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          className="w-full px-3 py-2 rounded-md border border-gh-border bg-gh-bg text-sm text-zinc-100 focus:outline-none focus:border-emerald-500 transition-colors"
-        >
-          <option value="">— Select player —</option>
-          {filtered.map(p => (
-            <option key={p.id} value={p.id}>
-              {p.name} ({p.overrallRating} OVR)
-            </option>
-          ))}
-        </select>
-        {selected && (
-          <p className="text-[10px] text-zinc-600 mt-0.5 truncate font-mono">{value}</p>
-        )}
-      </div>
-    </div>
   )
 }
 
@@ -158,23 +111,30 @@ function AddMatchForm({
     })
   }
 
-  const inputCls = 'w-full px-3 py-2 rounded-md border border-gh-border bg-gh-bg text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-emerald-500 transition-colors'
-  const numCls = `${inputCls} text-center`
+  const scoreCls =
+    'w-full h-16 rounded-lg border border-turf-line bg-turf-bg text-center font-display text-4xl font-black tabular-nums text-chalk focus:outline-none focus:border-gold/70 focus:ring-2 focus:ring-gold/20'
+  const penCls =
+    'w-full h-8 rounded-md border border-turf-line bg-turf-bg text-center text-sm tabular-nums text-chalk-muted focus:outline-none focus:border-gold/70'
+
+  const sides = [
+    { key: 'home', id: p1Id, setId: setP1Id, goals: p1Goals, setGoals: setP1Goals, pen: p1Pen, setPen: setP1Pen },
+    { key: 'away', id: p2Id, setId: setP2Id, goals: p2Goals, setGoals: setP2Goals, pen: p2Pen, setPen: setP2Pen },
+  ] as const
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <div className={cn('grid gap-3', groups.length > 0 && 'grid-cols-2')}>
         <div>
-          <label className="block text-xs font-medium text-zinc-400 mb-1.5">Phase</label>
-          <select value={phase} onChange={e => setPhase(e.target.value)} className={inputCls}>
+          <label htmlFor="match-phase" className="field-label">Phase</label>
+          <select id="match-phase" value={phase} onChange={e => setPhase(e.target.value)} className="field">
             {ALL_PHASES.map(p => <option key={p} value={p}>{fmtPhase(p)}</option>)}
           </select>
         </div>
         {groups.length > 0 && (
           <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1.5">Group</label>
-            <select value={groupId} onChange={e => setGroupId(e.target.value)} className={inputCls}>
-              <option value="">— Knockout —</option>
+            <label htmlFor="match-group" className="field-label">Group</label>
+            <select id="match-group" value={groupId} onChange={e => setGroupId(e.target.value)} className="field">
+              <option value="">None (knockout)</option>
               {groups.map((g, i) => (
                 <option key={g.id} value={g.id}>Group {String.fromCharCode(65 + i)}</option>
               ))}
@@ -183,33 +143,50 @@ function AddMatchForm({
         )}
       </div>
 
-      {([
-        { label: 'Participant 1', id: p1Id, setId: setP1Id, goals: p1Goals, setGoals: setP1Goals, pen: p1Pen, setPen: setP1Pen },
-        { label: 'Participant 2', id: p2Id, setId: setP2Id, goals: p2Goals, setGoals: setP2Goals, pen: p2Pen, setPen: setP2Pen },
-      ] as const).map(({ label, id, setId, goals, setGoals, pen, setPen }) => (
-        <div key={label} className="space-y-2">
-          <PlayerPicker
-            label={label}
-            value={id}
-            onChange={setId}
-            players={allPlayers as Player[]}
-          />
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <input type="number" min={0} value={goals} onChange={e => setGoals(Number(e.target.value))} className={numCls} />
-              <p className="text-[10px] text-zinc-600 text-center mt-0.5">Goals</p>
+      {/* Scoreboard-style entry */}
+      <div className="rounded-xl border border-turf-line bg-turf-raised/40 p-4">
+        <div className="grid grid-cols-[1fr,auto,1fr] gap-3 items-start">
+          {sides.map(({ key, id, setId, goals, setGoals, pen, setPen }, i) => (
+            <div key={key} className={cn('space-y-2', i === 1 && 'col-start-3')}>
+              <label htmlFor={`match-${key}`} className="sr-only">Participant {i + 1}</label>
+              <select id={`match-${key}`} value={id} onChange={e => setId(e.target.value)} className="field">
+                <option value="">Select player</option>
+                {(allPlayers as Player[]).map(p => (
+                  <option key={p.id} value={p.id}>{p.name} ({p.overrallRating})</option>
+                ))}
+              </select>
+              <label htmlFor={`goals-${key}`} className="sr-only">Goals</label>
+              <input
+                id={`goals-${key}`}
+                type="number"
+                min={0}
+                value={goals}
+                onChange={e => setGoals(Number(e.target.value))}
+                className={scoreCls}
+              />
+              <div className="flex items-center gap-2">
+                <label htmlFor={`pens-${key}`} className="text-xs text-chalk-faint shrink-0">Pens</label>
+                <input
+                  id={`pens-${key}`}
+                  type="number"
+                  min={0}
+                  value={pen}
+                  onChange={e => setPen(Number(e.target.value))}
+                  className={penCls}
+                />
+              </div>
             </div>
-            <div>
-              <input type="number" min={0} value={pen} onChange={e => setPen(Number(e.target.value))} className={numCls} />
-              <p className="text-[10px] text-zinc-600 text-center mt-0.5">Penalty goals</p>
-            </div>
-          </div>
+          ))}
+          <span className="col-start-2 row-start-1 self-center mt-12 font-display text-2xl font-bold text-chalk-faint">
+            –
+          </span>
         </div>
-      ))}
+        <p className="text-xs text-chalk-faint mt-3">Only fill in penalties if the match went to a shootout.</p>
+      </div>
 
-      <div className="flex gap-2 justify-end pt-2">
+      <div className="flex gap-2 justify-end">
         <Button variant="ghost" type="button" onClick={onCancel}>Cancel</Button>
-        <Button variant="primary" type="submit" loading={mut.isPending}>Add Match</Button>
+        <Button variant="primary" type="submit" loading={mut.isPending}>Add match</Button>
       </div>
     </form>
   )
@@ -238,13 +215,11 @@ function AddDuoForm({
         name: name.trim() || undefined,
       }),
     onSuccess: () => {
-      toast.success('Duo created')
+      toast.success('Duo added')
       onSuccess()
     },
     onError: (e: Error) => toast.error(e.message),
   })
-
-  const inputCls = 'w-full px-3 py-2 rounded-md border border-gh-border bg-gh-bg text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-emerald-500'
 
   return (
     <form
@@ -256,20 +231,20 @@ function AddDuoForm({
       className="space-y-4"
     >
       <div>
-        <label className="block text-xs font-medium text-zinc-400 mb-1.5">Duo Name (optional)</label>
-        <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. The Untouchables" className={inputCls} />
+        <label htmlFor="duo-name" className="field-label">Duo name (optional)</label>
+        <input id="duo-name" value={name} onChange={e => setName(e.target.value)} placeholder="The Untouchables" className="field" />
       </div>
       <div>
-        <label className="block text-xs font-medium text-zinc-400 mb-1.5">Player 1 ID</label>
-        <input value={p1Id} onChange={e => setP1Id(e.target.value)} placeholder="UUID..." className={inputCls} />
+        <label htmlFor="duo-p1" className="field-label">First player ID</label>
+        <input id="duo-p1" value={p1Id} onChange={e => setP1Id(e.target.value)} placeholder="Paste from the Players page" className="field" />
       </div>
       <div>
-        <label className="block text-xs font-medium text-zinc-400 mb-1.5">Player 2 ID</label>
-        <input value={p2Id} onChange={e => setP2Id(e.target.value)} placeholder="UUID..." className={inputCls} />
+        <label htmlFor="duo-p2" className="field-label">Second player ID</label>
+        <input id="duo-p2" value={p2Id} onChange={e => setP2Id(e.target.value)} placeholder="Paste from the Players page" className="field" />
       </div>
       <div className="flex gap-2 justify-end pt-2">
         <Button variant="ghost" type="button" onClick={onCancel}>Cancel</Button>
-        <Button variant="primary" type="submit" loading={mut.isPending}>Create Duo</Button>
+        <Button variant="primary" type="submit" loading={mut.isPending}>Add duo</Button>
       </div>
     </form>
   )
@@ -288,44 +263,43 @@ function MatchViewTabs({
 
   const tabCls = (active: boolean) =>
     cn(
-      'px-4 py-2.5 text-xs font-semibold uppercase tracking-wider border-b-2 transition-colors cursor-pointer',
-      active
-        ? 'border-emerald-500 text-emerald-400'
-        : 'border-transparent text-zinc-500 hover:text-zinc-300',
+      'px-3 py-1.5 text-sm font-medium rounded-md transition-colors',
+      active ? 'bg-turf-raised text-chalk' : 'text-chalk-faint hover:text-chalk',
     )
 
   return (
     <>
-      <div className="flex items-center justify-between px-5 pt-4 pb-0 border-b border-gh-border">
-        <div className="flex gap-1">
-          <button className={tabCls(tab === 'bracket')} onClick={() => setTab('bracket')}>
+      <div className="flex items-center justify-between gap-4 px-5 py-4 border-b border-turf-line">
+        <div className="flex items-baseline gap-3">
+          <h3 className="panel-title">Matches</h3>
+          <span className="text-sm text-chalk-faint tabular-nums">{matches.length}</span>
+        </div>
+        <div className="flex gap-1 p-1 rounded-lg border border-turf-line" role="tablist">
+          <button role="tab" aria-selected={tab === 'bracket'} className={tabCls(tab === 'bracket')} onClick={() => setTab('bracket')}>
             Bracket
           </button>
-          <button className={tabCls(tab === 'list')} onClick={() => setTab('list')}>
+          <button role="tab" aria-selected={tab === 'list'} className={tabCls(tab === 'list')} onClick={() => setTab('list')}>
             List
           </button>
         </div>
-        <span className="text-xs text-zinc-600 pb-2">{matches.length} matches</span>
       </div>
 
       <div className="p-5">
         {matches.length === 0 ? (
-          <p className="text-sm text-zinc-600 text-center py-6">No matches yet</p>
+          <Empty title="No matches yet" hint="Use “Add match” to record the first result." />
         ) : tab === 'bracket' ? (
           <BracketView matches={matches} />
         ) : (
-          Object.entries(matchesByPhase).map(([phase, phaseMatches], i) => (
-            <div key={phase}>
-              <div className={cn('flex items-center gap-3 mb-3', i > 0 ? 'mt-6' : 'mt-0')}>
-                <div className="flex-1 h-px bg-gh-border" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-500 px-1">
-                  {fmtPhase(phase)}
-                </span>
-                <div className="flex-1 h-px bg-gh-border" />
-              </div>
-              {phaseMatches.map(m => <MatchCard key={m.id} match={m} />)}
-            </div>
-          ))
+          <div className="space-y-6">
+            {Object.entries(matchesByPhase).map(([phase, phaseMatches]) => (
+              <section key={phase}>
+                <h4 className="font-display text-lg font-bold text-chalk-muted mb-2">{fmtPhase(phase)}</h4>
+                <div className="space-y-2">
+                  {phaseMatches.map(m => <MatchCard key={m.id} match={m} />)}
+                </div>
+              </section>
+            ))}
+          </div>
         )}
       </div>
     </>
@@ -341,62 +315,28 @@ function MatchCard({ match }: { match: Championship['matches'][number] }) {
   const isDraw = !match.winnerId
   const hasPens = (p1?.penaltyShootoutGoals ?? 0) > 0 || (p2?.penaltyShootoutGoals ?? 0) > 0
 
-  return (
-    <div className="grid grid-cols-[1fr,96px,1fr] border border-gh-border/50 rounded-lg overflow-hidden mb-2 hover:border-gh-border transition-colors">
-      {/* Team 1 */}
-      <div className={cn(
-        'flex items-center justify-end px-5 py-3.5',
-        p1Wins ? 'bg-white/[0.05]' : 'bg-gh-bg',
-      )}>
-        <span className={cn(
-          'text-sm font-semibold truncate',
-          p1Wins ? 'text-zinc-100' : 'text-zinc-500',
-        )}>
-          {p1?.name ?? '?'}
-        </span>
-      </div>
+  const nameCls = (wins: boolean) =>
+    cn('text-[15px] font-semibold truncate', wins ? 'text-chalk' : 'text-chalk-faint')
+  const goalCls = (wins: boolean) =>
+    cn('font-display text-4xl font-black tabular-nums leading-none w-8 text-center', wins || isDraw ? 'text-chalk' : 'text-chalk-faint')
 
-      {/* Score */}
-      <div className="flex flex-col items-center justify-center border-x border-gh-border/40 py-2.5 bg-gh-elevated/40">
-        <div className="flex items-center gap-1.5">
-          <span className={cn(
-            'text-xl font-bold tabular-nums w-5 text-center leading-none',
-            p1Wins ? 'text-zinc-100' : 'text-zinc-500',
-          )}>
-            {p1?.goals ?? 0}
-          </span>
-          <span className="text-zinc-600 text-sm">–</span>
-          <span className={cn(
-            'text-xl font-bold tabular-nums w-5 text-center leading-none',
-            p2Wins ? 'text-zinc-100' : 'text-zinc-500',
-          )}>
-            {p2?.goals ?? 0}
-          </span>
+  return (
+    <div className="grid grid-cols-[1fr,auto,1fr] items-center gap-3 sm:gap-5 rounded-xl bg-turf-bg/70 border border-turf-line/70 px-4 sm:px-6 py-3">
+      <span className={cn(nameCls(p1Wins), 'text-right')}>{p1?.name ?? '?'}</span>
+      <div className="flex flex-col items-center">
+        <div className="flex items-center gap-1">
+          <span className={goalCls(p1Wins)}>{p1?.goals ?? 0}</span>
+          <span className="text-chalk-faint text-lg">–</span>
+          <span className={goalCls(p2Wins)}>{p2?.goals ?? 0}</span>
         </div>
         {hasPens && (
-          <span className="text-[10px] text-zinc-600 mt-1 tabular-nums">
-            ({p1?.penaltyShootoutGoals}–{p2?.penaltyShootoutGoals} pens)
+          <span className="text-[11px] text-chalk-faint mt-1 tabular-nums">
+            {p1?.penaltyShootoutGoals}–{p2?.penaltyShootoutGoals} on pens
           </span>
         )}
-        {isDraw && (
-          <span className="text-[10px] text-zinc-500 font-medium uppercase tracking-wider mt-0.5">
-            Draw
-          </span>
-        )}
+        {isDraw && !hasPens && <span className="text-[11px] text-chalk-faint mt-1">Draw</span>}
       </div>
-
-      {/* Team 2 */}
-      <div className={cn(
-        'flex items-center px-5 py-3.5',
-        p2Wins ? 'bg-white/[0.05]' : 'bg-gh-bg',
-      )}>
-        <span className={cn(
-          'text-sm font-semibold truncate',
-          p2Wins ? 'text-zinc-100' : 'text-zinc-500',
-        )}>
-          {p2?.name ?? '?'}
-        </span>
-      </div>
+      <span className={nameCls(p2Wins)}>{p2?.name ?? '?'}</span>
     </div>
   )
 }
@@ -406,33 +346,28 @@ function GroupTable({ group, index }: { group: ChampionshipGroup; index: number 
     (a, b) => b.points - a.points || b.goalDifference - a.goalDifference,
   )
   return (
-    <div className="mb-5">
-      <p className="text-xs font-bold uppercase tracking-wider text-zinc-500 mb-2">
+    <div>
+      <h4 className="font-display text-lg font-bold text-chalk-muted mb-1">
         Group {String.fromCharCode(65 + index)}
-      </p>
+      </h4>
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-gh-border">
-            <th className="text-left px-2 pb-1.5 text-[11px] text-zinc-600 font-medium">#</th>
-            <th className="text-left px-2 pb-1.5 text-[11px] text-zinc-600 font-medium">Player</th>
-            <th className="text-center px-2 pb-1.5 text-[11px] text-zinc-600 font-medium">Pts</th>
-            <th className="text-center px-2 pb-1.5 text-[11px] text-zinc-600 font-medium">GD</th>
+          <tr className="text-chalk-faint">
+            <th className="text-left py-1.5 w-6 text-xs font-semibold">#</th>
+            <th className="text-left py-1.5 text-xs font-semibold">Player</th>
+            <th className="text-right py-1.5 w-12 text-xs font-semibold">GD</th>
+            <th className="text-right py-1.5 w-12 text-xs font-semibold">Pts</th>
           </tr>
         </thead>
         <tbody>
           {sorted.map((p, i) => (
-            <tr key={p.id} className="border-b border-gh-border/30 last:border-0">
-              <td className="px-2 py-2 text-zinc-600">{i + 1}</td>
-              <td className="px-2 py-2 font-medium">{p.name}</td>
-              <td className="px-2 py-2 text-center font-bold">{p.points}</td>
-              <td
-                className={
-                  'px-2 py-2 text-center font-medium ' +
-                  (p.goalDifference >= 0 ? 'text-emerald-400' : 'text-red-400')
-                }
-              >
-                {p.goalDifference >= 0 ? '+' : ''}{p.goalDifference}
+            <tr key={p.id} className="border-t border-turf-line/60">
+              <td className={cn('py-2 tabular-nums', i < 2 ? 'text-gold font-semibold' : 'text-chalk-faint')}>{i + 1}</td>
+              <td className="py-2 font-medium text-chalk">{p.name}</td>
+              <td className={cn('py-2 text-right tabular-nums', p.goalDifference > 0 ? 'text-win' : p.goalDifference < 0 ? 'text-loss' : 'text-chalk-faint')}>
+                {p.goalDifference > 0 ? '+' : ''}{p.goalDifference}
               </td>
+              <td className="py-2 text-right font-display text-xl font-extrabold tabular-nums text-chalk">{p.points}</td>
             </tr>
           ))}
         </tbody>
@@ -454,12 +389,8 @@ function ChampionshipDetail({ champId }: { champId: string }) {
 
   const refetch = () => qc.invalidateQueries({ queryKey: ['championship', champId] })
 
-  if (isLoading) return <div className="flex justify-center py-12"><Spinner /></div>
-  if (error) return (
-    <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-4">
-      {(error as Error).message}
-    </p>
-  )
+  if (isLoading) return <Loading />
+  if (error) return <ErrorNote error={error} />
   if (!data) return null
 
   const c = data as Championship
@@ -473,109 +404,135 @@ function ChampionshipDetail({ champId }: { champId: string }) {
 
   return (
     <div className="space-y-4">
-      {/* Header card */}
-      <div className="bg-gh-surface border border-gh-border rounded-lg p-5">
-        <div className="flex items-start justify-between gap-4 mb-4">
-          <div>
-            <h2 className="text-lg font-bold text-zinc-100">{c.title}</h2>
-            <p className="text-sm text-zinc-500 mt-0.5">{fmtDate(c.createdAtIso)}</p>
+      {/* Header */}
+      <section className="panel overflow-hidden">
+        <div className="p-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-sm text-chalk-muted">
+                {fmtDate(c.createdAtIso)}
+                {c.isDuo && <span className="ml-2 text-lower">Duo format</span>}
+              </p>
+              <h2 className="font-display text-5xl font-black leading-[0.9] text-chalk mt-1">{fmtCupFull(c.title)}</h2>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" variant="subtle" onClick={() => setAddMatch(true)}>
+                <Plus className="w-3.5 h-3.5" /> Add match
+              </Button>
+              {c.isDuo && (
+                <Button size="sm" variant="subtle" onClick={() => setAddDuo(true)}>
+                  <Users className="w-3.5 h-3.5" /> Add duo
+                </Button>
+              )}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2 justify-end">
-            {c.championshipWinner ? (
-              <Badge variant="yellow">🏆 {c.championshipWinner.name}</Badge>
-            ) : (
-              <Badge variant="blue">⏳ Ongoing</Badge>
-            )}
+
+          {/* Honours */}
+          <div className="grid sm:grid-cols-2 gap-3 mt-6">
+            <div
+              className={cn(
+                'flex items-center gap-3 rounded-xl border px-4 py-3',
+                c.championshipWinner ? 'border-gold/35 bg-gold/[0.07]' : 'border-turf-line border-dashed',
+              )}
+            >
+              <Trophy className={cn('w-6 h-6 shrink-0', c.championshipWinner ? 'text-gold' : 'text-chalk-faint')} />
+              <div className="min-w-0">
+                <p className="text-xs text-chalk-muted">Champion</p>
+                <p className={cn('font-display text-2xl font-extrabold leading-tight truncate', c.championshipWinner ? 'text-chalk' : 'text-chalk-faint')}>
+                  {c.championshipWinner?.name ?? 'Still being played'}
+                </p>
+              </div>
+            </div>
             {c.goldenBootWinner && (
-              <Badge variant="green">
-                ⚽ {c.goldenBootWinner.name} ({c.goldenBootWinner.goals}g)
-              </Badge>
+              <div className="flex items-center gap-3 rounded-xl border border-turf-line px-4 py-3">
+                <Goal className="w-6 h-6 shrink-0 text-chalk-muted" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-chalk-muted">Golden boot</p>
+                  <p className="font-display text-2xl font-extrabold leading-tight text-chalk truncate">
+                    {c.goldenBootWinner.name}
+                  </p>
+                </div>
+                <p className="font-display text-3xl font-black tabular-nums text-chalk">
+                  {c.goldenBootWinner.goals}
+                  <span className="text-sm font-sans font-medium text-chalk-faint ml-1">goals</span>
+                </p>
+              </div>
             )}
           </div>
         </div>
 
-        {/* Participants */}
-        {c.players.length > 0 && (
-          <div className="mb-4">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-600 mb-2">
-              Participants ({c.players.length})
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {c.players.map(p => (
-                <span
-                  key={p.id}
-                  className="inline-flex items-center gap-1.5 bg-gh-elevated border border-gh-border rounded-full px-2.5 py-1 text-xs"
-                >
-                  {p.name}
-                  {p.overallRating != null && (
-                    <span className="text-emerald-400 font-bold">{p.overallRating}</span>
-                  )}
-                </span>
-              ))}
-            </div>
+        {(c.players.length > 0 || (c.duos && c.duos.length > 0)) && (
+          <div className="px-6 py-4 border-t border-turf-line space-y-3">
+            {c.players.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-chalk-faint mb-2">
+                  {c.players.length} {c.players.length === 1 ? 'player' : 'players'}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {c.players.map(p => (
+                    <span
+                      key={p.id}
+                      className="inline-flex items-center gap-1.5 bg-turf-raised border border-turf-line rounded-md px-2.5 py-1 text-sm text-chalk"
+                    >
+                      {p.name}
+                      {p.overallRating != null && (
+                        <span className="text-xs font-bold text-chalk-faint tabular-nums">{p.overallRating}</span>
+                      )}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {c.duos && c.duos.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-chalk-faint mb-2">
+                  {c.duos.length} {c.duos.length === 1 ? 'duo' : 'duos'}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {c.duos.map((d, i) => (
+                    <span
+                      key={i}
+                      className="inline-flex items-center bg-lower/10 border border-lower/25 rounded-md px-2.5 py-1 text-sm text-chalk"
+                    >
+                      {fmtDuo(d.player1.name, d.player1.id, d.player2.name, d.player2.id)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
-
-        {/* Duos */}
-        {c.duos && c.duos.length > 0 && (
-          <div className="mb-4">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-600 mb-2">
-              Duos ({c.duos.length})
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {c.duos.map((d, i) => (
-                <span
-                  key={i}
-                  className="inline-flex items-center gap-1 bg-gh-elevated border border-gh-border rounded-full px-2.5 py-1 text-xs"
-                >
-                  {fmtDuo(d.player1.name, d.player1.id, d.player2.name, d.player2.id)}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Actions */}
-        <div className="flex gap-2">
-          <Button size="sm" variant="subtle" onClick={() => setAddMatch(true)}>
-            <Plus className="w-3 h-3" /> Add Match
-          </Button>
-          {c.isDuo && (
-            <Button size="sm" variant="subtle" onClick={() => setAddDuo(true)}>
-              <Plus className="w-3 h-3" /> Add Duo
-            </Button>
-          )}
-        </div>
-      </div>
+      </section>
 
       {/* Groups */}
       {c.groups && c.groups.length > 0 && (
-        <div className="bg-gh-surface border border-gh-border rounded-lg overflow-hidden">
+        <section className="panel overflow-hidden">
           <button
             onClick={() => setGroupsExpanded(x => !x)}
-            className="w-full flex items-center justify-between px-5 py-3 text-left hover:bg-gh-elevated/50 transition-colors"
+            aria-expanded={groupsExpanded}
+            className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-turf-raised/40 transition-colors"
           >
-            <span className="text-sm font-semibold">Groups ({c.groups.length})</span>
-            {groupsExpanded ? <ChevronUp className="w-4 h-4 text-zinc-500" /> : <ChevronDown className="w-4 h-4 text-zinc-500" />}
+            <span className="flex items-baseline gap-3">
+              <span className="panel-title">Group stage</span>
+              <span className="text-sm text-chalk-faint">{c.groups.length} groups</span>
+            </span>
+            <ChevronDown className={cn('w-4 h-4 text-chalk-faint transition-transform', groupsExpanded && 'rotate-180')} />
           </button>
           {groupsExpanded && (
-            <div className="px-5 pb-4">
-              <div className="grid grid-cols-2 gap-6">
-                {c.groups.map((g, i) => <GroupTable key={g.id} group={g} index={i} />)}
-              </div>
+            <div className="px-5 pb-5 grid sm:grid-cols-2 gap-x-8 gap-y-6">
+              {c.groups.map((g, i) => <GroupTable key={g.id} group={g} index={i} />)}
             </div>
           )}
-        </div>
+        </section>
       )}
 
       {/* Matches */}
-      <div className="bg-gh-surface border border-gh-border rounded-lg overflow-hidden">
-        {/* Tab header */}
+      <section className="panel overflow-hidden">
         <MatchViewTabs matches={c.matches} matchesByPhase={matchesByPhase} />
-      </div>
+      </section>
 
-      {/* Dialogs */}
-      <Dialog open={addMatch} onClose={() => setAddMatch(false)} title="Add Match">
+      <Dialog open={addMatch} onClose={() => setAddMatch(false)} title="Add match" className="sm:max-w-lg">
         <AddMatchForm
           champId={champId}
           groups={c.groups ?? []}
@@ -584,7 +541,7 @@ function ChampionshipDetail({ champId }: { champId: string }) {
         />
       </Dialog>
 
-      <Dialog open={addDuo} onClose={() => setAddDuo(false)} title="Add Duo">
+      <Dialog open={addDuo} onClose={() => setAddDuo(false)} title="Add duo">
         <AddDuoForm
           champId={champId}
           onCancel={() => setAddDuo(false)}
@@ -609,61 +566,50 @@ function ChampionshipList({
     queryFn: championshipsApi.list,
   })
 
-  if (isLoading) return (
-    <div className="flex justify-center py-8"><Spinner /></div>
-  )
+  if (isLoading) return <Loading className="py-8" />
 
-  if (!data?.length) return (
-    <p className="text-sm text-zinc-600 text-center py-6">No championships yet</p>
-  )
+  if (!data?.length)
+    return <Empty title="No championships yet" hint="Create one to start recording matches." className="py-8" />
 
   return (
-    <div className="space-y-1.5">
-      {(data as ChampionshipBrief[]).map(c => (
-        <button
-          key={c.id}
-          onClick={() => onSelect(c.id)}
-          className={cn(
-            'w-full flex items-center gap-4 px-4 py-3 rounded-lg border text-left transition-colors',
-            activeId === c.id
-              ? 'bg-emerald-500/10 border-emerald-500/30'
-              : 'bg-gh-bg border-gh-border/50 hover:bg-gh-elevated hover:border-gh-border',
-          )}
-        >
-          {/* Icon */}
-          <div className={cn(
-            'w-8 h-8 rounded-md flex items-center justify-center shrink-0 text-sm',
-            c.winnerName ? 'bg-amber-500/10' : 'bg-gh-elevated',
-          )}>
-            {c.winnerName ? <Trophy className="w-4 h-4 text-amber-400" /> : <span className="text-zinc-600">⏳</span>}
-          </div>
-
-          {/* Info */}
-          <div className="flex-1 min-w-0">
-            <p className={cn(
-              'text-sm font-semibold truncate',
-              activeId === c.id ? 'text-emerald-400' : 'text-zinc-100',
-            )}>
-              {c.title}
-            </p>
-            <p className="text-xs text-zinc-500 mt-0.5">
-              {new Date(c.createdAtIso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-              {c.isDuo && <span className="ml-2 text-blue-400">· Duo</span>}
-            </p>
-          </div>
-
-          {/* Right side */}
-          <div className="text-right shrink-0">
-            {c.winnerName ? (
-              <p className="text-xs text-amber-400 font-medium">🏆 {c.winnerName}</p>
-            ) : (
-              <p className="text-xs text-zinc-600">Ongoing</p>
-            )}
-            <p className="text-xs text-zinc-600 mt-0.5">{c.matchCount} match{c.matchCount !== 1 ? 'es' : ''}</p>
-          </div>
-        </button>
-      ))}
-    </div>
+    <ul className="space-y-1">
+      {(data as ChampionshipBrief[]).map(c => {
+        const active = activeId === c.id
+        return (
+          <li key={c.id}>
+            <button
+              onClick={() => onSelect(c.id)}
+              aria-current={active ? 'true' : undefined}
+              className={cn(
+                'w-full grid grid-cols-[1fr,auto] items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors',
+                active ? 'bg-turf-raised ring-1 ring-gold/40' : 'hover:bg-turf-raised/60',
+              )}
+            >
+              <div className="min-w-0">
+                <p className="font-display text-xl font-bold leading-tight text-chalk truncate">{fmtCup(c.title)}</p>
+                <p className="text-xs text-chalk-faint mt-0.5">
+                  {fmtDate(c.createdAtIso)}
+                  {c.isDuo && <span className="ml-2 text-lower">Duo</span>}
+                  <span className="ml-2 tabular-nums">
+                    {c.matchCount} {c.matchCount === 1 ? 'match' : 'matches'}
+                  </span>
+                </p>
+              </div>
+              <div className="text-right max-w-[110px]">
+                {c.winnerName ? (
+                  <p className="flex items-center justify-end gap-1 text-sm font-semibold text-gold truncate">
+                    <Trophy className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">{c.winnerName}</span>
+                  </p>
+                ) : (
+                  <p className="text-xs font-medium text-chalk-faint">In progress</p>
+                )}
+              </div>
+            </button>
+          </li>
+        )
+      })}
+    </ul>
   )
 }
 
@@ -688,57 +634,52 @@ export default function ChampionshipsPage() {
 
   return (
     <>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-bold text-zinc-100">Championships</h1>
-          <p className="text-sm text-zinc-500 mt-0.5">Create and manage tournaments</p>
-        </div>
-        <Button variant="primary" onClick={() => setCreateOpen(true)}>
-          <Plus className="w-3.5 h-3.5" /> New Championship
-        </Button>
-      </div>
+      <PageHeader
+        title="Championships"
+        description="Every cup the group has played. Open one to see its groups, bracket and results, or to add a match."
+        actions={
+          <Button variant="primary" onClick={() => setCreateOpen(true)}>
+            <Plus className="w-4 h-4" /> New championship
+          </Button>
+        }
+      />
 
-      <div className="grid grid-cols-[300px,1fr] gap-6 items-start">
-        {/* Left — list */}
-        <div className="bg-gh-surface border border-gh-border rounded-lg p-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-3">
-            All Championships
-          </p>
+      <div className="grid grid-cols-1 lg:grid-cols-[320px,1fr] gap-6 items-start">
+        <aside className="panel p-3 lg:sticky lg:top-0">
           <ChampionshipList onSelect={handleSelect} activeId={activeId} />
-        </div>
-
-        {/* Right — detail / search */}
-        <div>
-          <div className="bg-gh-surface border border-gh-border rounded-lg p-4 mb-4">
-            <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-2">
-              Look up by ID
-            </p>
-            <div className="flex gap-2">
+          <div className="mt-3 pt-3 border-t border-turf-line px-1">
+            <label htmlFor="champ-id" className="text-xs font-semibold text-chalk-faint">Open by ID</label>
+            <div className="flex gap-2 mt-1.5">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-600" />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-chalk-faint pointer-events-none" />
                 <input
+                  id="champ-id"
                   ref={inputRef}
                   value={inputId}
                   onChange={e => setInputId(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSearch()}
-                  placeholder="Paste championship UUID..."
-                  className="w-full pl-9 pr-3 py-2 rounded-md border border-gh-border bg-gh-bg text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-emerald-500 transition-colors"
+                  placeholder="Championship ID"
+                  className="field pl-8 py-1.5"
                 />
               </div>
-              <Button variant="primary" onClick={handleSearch}>Search</Button>
+              <Button size="sm" variant="subtle" className="h-auto" onClick={handleSearch}>Open</Button>
             </div>
           </div>
+        </aside>
 
-          {activeId && <ChampionshipDetail key={activeId} champId={activeId} />}
+        <div className="min-w-0">
+          {activeId ? (
+            <ChampionshipDetail key={activeId} champId={activeId} />
+          ) : (
+            <div className="panel border-dashed bg-transparent">
+              <Empty title="Pick a championship" hint="Choose one from the list to see its results." className="py-20" />
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Create dialog */}
-      <Dialog open={createOpen} onClose={() => setCreateOpen(false)} title="New Championship">
-        <CreateChampionshipForm
-          onCancel={() => setCreateOpen(false)}
-          onSuccess={() => setCreateOpen(false)}
-        />
+      <Dialog open={createOpen} onClose={() => setCreateOpen(false)} title="New championship">
+        <CreateChampionshipForm onCancel={() => setCreateOpen(false)} onSuccess={() => setCreateOpen(false)} />
       </Dialog>
     </>
   )

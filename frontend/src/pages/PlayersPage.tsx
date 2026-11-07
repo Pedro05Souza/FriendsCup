@@ -4,14 +4,14 @@ import { toast } from 'sonner'
 import { Copy, ChevronLeft, ChevronRight, Trash2, Pencil, BarChart2, Plus, Search, ChevronsUpDown, ChevronUp, ChevronDown } from 'lucide-react'
 import { playersApi } from '../api/players'
 import type { FormEntry, Player, PlayerFormData, RetrospectData } from '../types'
-import { cn, fmtPhase, copyToClipboard } from '../lib/utils'
+import { cn, fmtPhase, copyToClipboard, ratingTone } from '../lib/utils'
 import Button from '../components/ui/Button'
-import Badge from '../components/ui/Badge'
 import Dialog from '../components/ui/Dialog'
-import Spinner from '../components/ui/Spinner'
 import StatCard from '../components/ui/StatCard'
 import RatingBar from '../components/ui/RatingBar'
 import RadarChart from '../components/ui/RadarChart'
+import PageHeader from '../components/ui/PageHeader'
+import { Empty, ErrorNote, Loading } from '../components/ui/States'
 
 // ── Shared form ─────────────────────────────────────────────────────────────
 
@@ -24,19 +24,23 @@ function StatSlider({
   value: number
   onChange: (v: number) => void
 }) {
+  const id = `stat-${label.toLowerCase()}`
   return (
     <div>
-      <div className="flex justify-between mb-1">
-        <label className="text-xs font-medium text-zinc-400">{label}</label>
-        <span className="text-xs font-bold text-emerald-400">{value}</span>
+      <div className="flex justify-between items-baseline mb-1">
+        <label htmlFor={id} className="text-[13px] font-semibold text-chalk-muted">{label}</label>
+        <span className={cn('font-display text-2xl font-extrabold tabular-nums leading-none', ratingTone(value))}>
+          {value}
+        </span>
       </div>
       <input
+        id={id}
         type="range"
         min={0}
         max={100}
         value={value}
         onChange={e => onChange(Number(e.target.value))}
-        className="w-full accent-emerald-500 cursor-pointer"
+        className="w-full accent-gold cursor-pointer"
       />
     </div>
   )
@@ -66,15 +70,16 @@ function PlayerForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-5">
       <div>
-        <label className="block text-xs font-medium text-zinc-400 mb-1.5">Name</label>
+        <label htmlFor="player-name" className="field-label">Name</label>
         <input
+          id="player-name"
           value={name}
           onChange={e => setName(e.target.value)}
           placeholder="Player name"
           autoFocus
-          className="w-full px-3 py-2 rounded-md border border-gh-border bg-gh-bg text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-emerald-500 transition-colors"
+          className="field"
         />
       </div>
       <StatSlider label="Attack" value={attack} onChange={setAttack} />
@@ -84,7 +89,7 @@ function PlayerForm({
       <div className="flex gap-2 justify-end pt-2">
         <Button variant="ghost" type="button" onClick={onCancel}>Cancel</Button>
         <Button variant="primary" type="submit" loading={loading}>
-          {initial?.name ? 'Save Changes' : 'Create Player'}
+          {initial?.name ? 'Save changes' : 'Add player'}
         </Button>
       </div>
     </form>
@@ -93,11 +98,7 @@ function PlayerForm({
 
 // ── Retrospect Modal ─────────────────────────────────────────────────────────
 
-function RetrospectContent({
-  player,
-}: {
-  player: Player
-}) {
+function RetrospectContent({ player }: { player: Player }) {
   const { data, isLoading, error } = useQuery({
     queryKey: ['retrospect', player.id],
     queryFn: () => playersApi.retrospect(player.id),
@@ -114,11 +115,11 @@ function RetrospectContent({
   return (
     <div className="space-y-4">
       <div className="flex justify-center">
-        <RadarChart axes={radarAxes} size={200} />
+        <RadarChart axes={radarAxes} size={210} />
       </div>
 
-      {isLoading && <div className="flex justify-center py-4"><Spinner /></div>}
-      {error && <p className="text-red-400 text-sm">{(error as Error).message}</p>}
+      {isLoading && <Loading className="py-6" />}
+      {error && <ErrorNote error={error} />}
 
       {data && (() => {
         const d = data as RetrospectData
@@ -126,15 +127,19 @@ function RetrospectContent({
           <>
             <div className="grid grid-cols-3 gap-2">
               <StatCard label="Matches" value={d.totalMatches} />
-              <StatCard label="Wins" value={d.totalWins} valueClassName="text-emerald-400" />
-              <StatCard label="Losses" value={d.totalLosses} valueClassName="text-red-400" />
-              <StatCard label="Draws" value={d.totalDraws} valueClassName="text-amber-400" />
               <StatCard label="Goals" value={d.totalGoals} />
-              <StatCard label="Win Rate" value={`${d.winRate}%`} />
+              <StatCard label="Win rate" value={`${d.winRate}%`} valueClassName="text-gold" />
+              <StatCard label="Wins" value={d.totalWins} valueClassName="text-win" />
+              <StatCard label="Draws" value={d.totalDraws} valueClassName="text-draw" />
+              <StatCard label="Losses" value={d.totalLosses} valueClassName="text-loss" />
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <StatCard label="Avg Goals / Match" value={d.averageGoalsPerMatch} valueClassName="text-xl" />
-              <StatCard label="Furthest Stage" value={fmtPhase(d.furthestStageReached)} valueClassName="text-sm text-amber-400" />
+              <StatCard label="Goals per match" value={d.averageGoalsPerMatch} valueClassName="text-3xl" />
+              <StatCard
+                label="Furthest stage reached"
+                value={fmtPhase(d.furthestStageReached)}
+                valueClassName="text-2xl text-gold"
+              />
             </div>
           </>
         )
@@ -146,9 +151,9 @@ function RetrospectContent({
 // ── Form chips ───────────────────────────────────────────────────────────────
 
 const FORM_COLOR: Record<string, string> = {
-  W: 'bg-emerald-500 text-white',
-  D: 'bg-amber-500 text-white',
-  L: 'bg-red-500 text-white',
+  W: 'bg-win text-turf-bg',
+  D: 'bg-draw text-turf-bg',
+  L: 'bg-loss text-turf-bg',
 }
 
 function FormChips({ playerId }: { playerId: string }) {
@@ -158,30 +163,40 @@ function FormChips({ playerId }: { playerId: string }) {
     staleTime: 60_000,
   })
 
-  if (isLoading) return <div className="flex gap-0.5">{Array.from({ length: 5 }).map((_, i) => <span key={i} className="w-4 h-4 rounded-sm bg-gh-border animate-pulse" />)}</div>
+  if (isLoading)
+    return (
+      <div className="flex gap-1">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <span key={i} className="w-5 h-5 rounded bg-turf-line animate-pulse" />
+        ))}
+      </div>
+    )
 
   const entries = (data as FormEntry[] | undefined) ?? []
   const chips = Array.from({ length: 5 }, (_, i) => entries[i] ?? null)
 
   return (
     <div
-      className="flex gap-0.5"
+      className="flex gap-1"
       title={entries.map(e =>
         `${e.result}${e.decidedByPenalties ? '(pens)' : ''} ${e.goalsFor}-${e.goalsAgainst} vs ${e.opponentName}`
       ).join('\n')}
     >
       {chips.map((e, i) => {
-        if (!e) return <span key={i} className="w-4 h-4 rounded-sm bg-gh-elevated border border-gh-border/40" />
+        if (!e) return <span key={i} className="w-5 h-5 rounded border border-dashed border-turf-line" />
         const displayLetter = e.decidedByPenalties ? 'D' : e.result
         const penSuffix = e.decidedByPenalties ? (e.result === 'W' ? 'p' : 'L') : null
         const colorKey = e.decidedByPenalties ? 'D' : e.result
         return (
           <span
             key={i}
-            className={`inline-flex items-center justify-center h-4 rounded-sm text-[9px] font-bold px-0.5 min-w-[16px] ${FORM_COLOR[colorKey]}`}
+            className={cn(
+              'inline-flex items-center justify-center h-5 rounded text-[10px] font-bold px-1 min-w-[20px]',
+              FORM_COLOR[colorKey],
+            )}
           >
             {displayLetter}
-            {penSuffix && <span className="text-[7px] opacity-80 ml-0.5">{penSuffix}</span>}
+            {penSuffix && <span className="text-[8px] opacity-75 ml-px">{penSuffix}</span>}
           </span>
         )
       })}
@@ -190,6 +205,15 @@ function FormChips({ playerId }: { playerId: string }) {
 }
 
 // ── Player row (component so it can call useQuery for form) ───────────────────
+
+function Delta({ value, className }: { value?: number; className?: string }) {
+  if (!value) return null
+  return (
+    <span className={cn('text-[11px] font-bold tabular-nums', value > 0 ? 'text-win' : 'text-loss', className)}>
+      {value > 0 ? `+${value}` : value}
+    </span>
+  )
+}
 
 function PlayerRow({
   p,
@@ -211,74 +235,62 @@ function PlayerRow({
   statDeltas?: { ovr: number; attack: number; defense: number; intelligence: number; mentality: number }
 }) {
   return (
-    <tr className={cn(
-      'border-b border-gh-border/50 hover:bg-gh-elevated/40 transition-all duration-300',
-      ovrDelta !== undefined && 'bg-emerald-500/[0.04]',
-    )}>
+    <tr
+      className={cn(
+        'border-b border-turf-line/60 last:border-0 hover:bg-turf-raised/50 transition-colors',
+        ovrDelta !== undefined && 'bg-win/[0.04]',
+      )}
+    >
+      {/* Overall */}
+      <td className="pl-5 pr-2 py-3">
+        <div className="flex items-baseline gap-1">
+          <span className={cn('font-display text-4xl font-black leading-none tabular-nums', ratingTone(p.overrallRating))}>
+            {p.overrallRating}
+          </span>
+          <Delta value={ovrDelta} />
+        </div>
+      </td>
       {/* Name + ID */}
       <td className="px-4 py-3">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-xs font-bold text-emerald-400 shrink-0">
-            {p.overrallRating}
-          </div>
-          <div>
-            <p className="font-semibold text-zinc-100">{p.name}</p>
-            <button
-              onClick={() => onCopyId(p.id)}
-              className="flex items-center gap-1 text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors mt-0.5"
-            >
-              <Copy className="w-2.5 h-2.5" />
-              {p.id.slice(0, 8)}…
-            </button>
-          </div>
-        </div>
-      </td>
-      {/* Overall */}
-      <td className="px-4 py-3">
-        <div className="flex items-center gap-1.5">
-          <Badge variant={p.overrallRating >= 75 ? 'green' : p.overrallRating >= 50 ? 'yellow' : 'red'}>
-            {p.overrallRating}
-          </Badge>
-          {ovrDelta !== undefined && ovrDelta !== 0 && (
-            <span className={cn(
-              'text-[11px] font-bold tabular-nums',
-              ovrDelta > 0 ? 'text-emerald-400' : 'text-red-400',
-            )}>
-              {ovrDelta > 0 ? `+${ovrDelta}` : ovrDelta}
-            </span>
-          )}
-        </div>
+        <p className="font-semibold text-[15px] text-chalk whitespace-nowrap">{p.name}</p>
+        <button
+          onClick={() => onCopyId(p.id)}
+          title="Copy player ID"
+          className="flex items-center gap-1 text-[11px] text-chalk-faint hover:text-chalk-muted transition-colors mt-0.5 tabular-nums"
+        >
+          <Copy className="w-3 h-3" />
+          {p.id.slice(0, 8)}
+        </button>
       </td>
       {/* Stat bars */}
-      {(['attack', 'defense', 'intelligence', 'mentality'] as const).map(stat => {
-        const delta = statDeltas?.[stat]
-        return (
-          <td key={stat} className="px-4 py-3 min-w-[100px]">
-            <div className="flex items-center gap-1.5">
-              <RatingBar value={p[stat]} className="flex-1" />
-              {!!delta && (
-                <span className={cn('text-[10px] font-bold tabular-nums shrink-0', delta > 0 ? 'text-emerald-400' : 'text-red-400')}>
-                  {delta > 0 ? `+${delta}` : delta}
-                </span>
-              )}
-            </div>
-          </td>
-        )
-      })}
+      {(['attack', 'defense', 'intelligence', 'mentality'] as const).map(stat => (
+        <td key={stat} className="px-4 py-3 min-w-[120px]">
+          <div className="flex items-center gap-1.5">
+            <RatingBar value={p[stat]} className="flex-1" />
+            <Delta value={statDeltas?.[stat]} className="text-[10px] shrink-0" />
+          </div>
+        </td>
+      ))}
       {/* Form */}
       <td className="px-4 py-3"><FormChips playerId={p.id} /></td>
       {/* Actions */}
-      <td className="px-4 py-3">
-        <div className="flex items-center gap-1.5">
+      <td className="pl-4 pr-5 py-3">
+        <div className="flex items-center justify-end gap-1.5">
           <Button size="sm" variant="subtle" onClick={() => onStats(p)}>
-            <BarChart2 className="w-3 h-3" />
-            Stats
+            <BarChart2 className="w-3.5 h-3.5" />
+            Profile
           </Button>
-          <Button size="sm" variant="subtle" onClick={() => onEdit(p)}>
-            <Pencil className="w-3 h-3" />
+          <Button size="sm" variant="ghost" onClick={() => onEdit(p)} aria-label={`Edit ${p.name}`}>
+            <Pencil className="w-3.5 h-3.5" />
           </Button>
-          <Button size="sm" variant="danger" onClick={() => onDelete(p)} loading={deleteLoading}>
-            <Trash2 className="w-3 h-3" />
+          <Button
+            size="sm"
+            variant="danger"
+            onClick={() => onDelete(p)}
+            loading={deleteLoading}
+            aria-label={`Delete ${p.name}`}
+          >
+            <Trash2 className="w-3.5 h-3.5" />
           </Button>
         </div>
       </td>
@@ -312,7 +324,7 @@ export default function PlayersPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['players'] })
       setCreateOpen(false)
-      toast.success('Player created!')
+      toast.success('Player added')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -338,7 +350,7 @@ export default function PlayersPage() {
       if (hasChange) setStatDeltas(prev => new Map(prev).set(vars.id, deltas))
       qc.invalidateQueries({ queryKey: ['players'] })
       setEditPlayer(null)
-      toast.success(`Player updated${deltas.ovr !== 0 ? ` (OVR ${deltas.ovr > 0 ? '+' : ''}${deltas.ovr})` : ''}`)
+      toast.success(`Changes saved${deltas.ovr !== 0 ? ` (OVR ${deltas.ovr > 0 ? '+' : ''}${deltas.ovr})` : ''}`)
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -374,83 +386,85 @@ export default function PlayersPage() {
 
   const handleCopyId = async (id: string) => {
     await copyToClipboard(id)
-    toast.info('ID copied to clipboard')
+    toast.info('Player ID copied')
   }
+
+  const columns: { label: string; key: SortKey | null; className?: string }[] = [
+    { label: 'OVR', key: 'overrallRating', className: 'pl-5 pr-2' },
+    { label: 'Player', key: 'name' },
+    { label: 'Attack', key: 'attack' },
+    { label: 'Defense', key: 'defense' },
+    { label: 'Intelligence', key: 'intelligence' },
+    { label: 'Mentality', key: 'mentality' },
+    { label: 'Last 5', key: null },
+    { label: '', key: null },
+  ]
 
   return (
     <>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-bold text-zinc-100">Players</h1>
-          <p className="text-sm text-zinc-500 mt-0.5">Manage all registered players</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-600" />
-            <input
-              value={search}
-              onChange={e => { setSearch(e.target.value); setPage(1) }}
-              placeholder="Search by name…"
-              className="pl-8 pr-3 py-1.5 rounded-md border border-gh-border bg-gh-bg text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-emerald-500 w-44 transition-colors"
-            />
-          </div>
-          <Button variant="primary" onClick={() => setCreateOpen(true)}>
-            <Plus className="w-3.5 h-3.5" />
-            New Player
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Players"
+        description="Everyone in the group, with their attributes and last five results."
+        actions={
+          <>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-chalk-faint pointer-events-none" />
+              <label htmlFor="player-search" className="sr-only">Search players</label>
+              <input
+                id="player-search"
+                value={search}
+                onChange={e => { setSearch(e.target.value); setPage(1) }}
+                placeholder="Search by name"
+                className="field h-10 pl-9 w-52"
+              />
+            </div>
+            <Button variant="primary" onClick={() => setCreateOpen(true)}>
+              <Plus className="w-4 h-4" />
+              Add player
+            </Button>
+          </>
+        }
+      />
 
-      {/* Table */}
-      <div className="bg-gh-surface border border-gh-border rounded-lg overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="panel overflow-hidden">
+        <div className="overflow-x-auto scrollbar-thin">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gh-border">
-                {([
-                  { label: 'Player',       key: 'name'          },
-                  { label: 'OVR',          key: 'overrallRating'},
-                  { label: 'Attack',       key: 'attack'        },
-                  { label: 'Defense',      key: 'defense'       },
-                  { label: 'Intelligence', key: 'intelligence'  },
-                  { label: 'Mentality',    key: 'mentality'     },
-                  { label: 'Form',         key: null            },
-                  { label: '',             key: null            },
-                ] as { label: string; key: SortKey | null }[]).map(({ label, key }) => (
-                  <th
-                    key={label}
-                    onClick={() => key && handleSort(key)}
-                    className={cn(
-                      'px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider',
-                      key ? 'cursor-pointer select-none text-zinc-400 hover:text-zinc-100 transition-colors' : 'text-zinc-500',
-                    )}
-                  >
-                    <div className="flex items-center gap-1">
-                      {label}
-                      {key && (
-                        sortKey === key
+              <tr className="border-b border-turf-line">
+                {columns.map(({ label, key, className }, i) => (
+                  <th key={i} className={cn('px-4 py-3 text-left text-xs font-semibold text-chalk-faint', className)}>
+                    {key ? (
+                      <button
+                        onClick={() => handleSort(key)}
+                        className={cn(
+                          'inline-flex items-center gap-1 hover:text-chalk transition-colors',
+                          sortKey === key && 'text-chalk',
+                        )}
+                      >
+                        {label}
+                        {sortKey === key
                           ? sortDir === 'desc'
-                            ? <ChevronDown className="w-3 h-3 text-emerald-400" />
-                            : <ChevronUp className="w-3 h-3 text-emerald-400" />
-                          : <ChevronsUpDown className="w-3 h-3 opacity-30" />
-                      )}
-                    </div>
+                            ? <ChevronDown className="w-3.5 h-3.5 text-gold" />
+                            : <ChevronUp className="w-3.5 h-3.5 text-gold" />
+                          : <ChevronsUpDown className="w-3 h-3 opacity-40" />}
+                      </button>
+                    ) : (
+                      label
+                    )}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr>
-                  <td colSpan={8} className="py-12 text-center">
-                    <Spinner className="mx-auto" />
-                  </td>
-                </tr>
+                <tr><td colSpan={8}><Loading /></td></tr>
               ) : !data?.players.length ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-zinc-600 text-sm">
-                    No players found
+                  <td colSpan={8}>
+                    <Empty
+                      title={search ? `No one called “${search}”` : 'No players yet'}
+                      hint={search ? 'Check the spelling or clear the search.' : 'Add the first player to get started.'}
+                    />
                   </td>
                 </tr>
               ) : (
@@ -471,13 +485,13 @@ export default function PlayersPage() {
             </tbody>
           </table>
         </div>
-        {data && (
-          <div className="flex items-center justify-between px-4 py-2.5 border-t border-gh-border">
-            <span className="text-xs text-zinc-600">Page {page}</span>
+        {data && (page > 1 || data.hasMore) && (
+          <div className="flex items-center justify-between px-5 py-3 border-t border-turf-line">
+            <span className="text-sm text-chalk-faint">Page {page}</span>
             <div className="flex gap-1.5">
               <Button size="sm" variant="ghost" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
                 <ChevronLeft className="w-3.5 h-3.5" />
-                Prev
+                Previous
               </Button>
               <Button size="sm" variant="ghost" disabled={!data.hasMore} onClick={() => setPage(p => p + 1)}>
                 Next
@@ -488,8 +502,7 @@ export default function PlayersPage() {
         )}
       </div>
 
-      {/* Create Dialog */}
-      <Dialog open={createOpen} onClose={() => setCreateOpen(false)} title="New Player">
+      <Dialog open={createOpen} onClose={() => setCreateOpen(false)} title="Add player">
         <PlayerForm
           onSubmit={createMut.mutate}
           onCancel={() => setCreateOpen(false)}
@@ -497,12 +510,7 @@ export default function PlayersPage() {
         />
       </Dialog>
 
-      {/* Edit Dialog */}
-      <Dialog
-        open={!!editPlayer}
-        onClose={() => setEditPlayer(null)}
-        title={`Edit — ${editPlayer?.name}`}
-      >
+      <Dialog open={!!editPlayer} onClose={() => setEditPlayer(null)} title={`Edit ${editPlayer?.name ?? ''}`}>
         {editPlayer && (
           <PlayerForm
             initial={editPlayer}
@@ -513,12 +521,11 @@ export default function PlayersPage() {
         )}
       </Dialog>
 
-      {/* Retrospect Dialog */}
       <Dialog
         open={!!retroPlayer}
         onClose={() => setRetroPlayer(null)}
-        title={`${retroPlayer?.name ?? ''} — Profile`}
-        className="max-w-sm"
+        title={retroPlayer?.name ?? ''}
+        className="sm:max-w-md"
       >
         {retroPlayer && <RetrospectContent player={retroPlayer} />}
       </Dialog>

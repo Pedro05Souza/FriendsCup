@@ -25,35 +25,31 @@ export default function Dialog({ open, onClose, title, children, className }: Di
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
       aria-modal="true"
       role="dialog"
+      aria-label={title}
     >
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-[#04100B]/80 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Panel */}
       <div
         className={cn(
-          'relative z-10 w-full max-w-md max-h-[90vh] overflow-y-auto',
-          'bg-gh-surface border border-gh-border rounded-xl shadow-2xl',
-          'scrollbar-thin',
+          'relative z-10 w-full sm:max-w-md max-h-[92vh] overflow-y-auto scrollbar-thin',
+          'bg-turf-surface border border-turf-line rounded-t-2xl sm:rounded-2xl shadow-[0_24px_80px_-20px_rgba(0,0,0,0.7)]',
           className,
         )}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gh-border">
-          <h2 className="text-base font-semibold text-zinc-100">{title}</h2>
+        <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-4">
+          <h2 className="font-display text-3xl font-extrabold leading-none text-chalk">{title}</h2>
           <button
             onClick={onClose}
-            className="text-zinc-500 hover:text-zinc-300 transition-colors"
+            aria-label="Close"
+            className="-mr-2 -mt-1 p-2 rounded-md text-chalk-faint hover:text-chalk hover:bg-turf-raised transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
-        <div className="p-5">{children}</div>
+        <div className="px-6 pb-6">{children}</div>
       </div>
     </div>,
     document.body,

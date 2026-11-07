@@ -1,53 +1,59 @@
 import { NavLink } from 'react-router-dom'
-import { Users, Trophy, Medal, BarChart2, Swords, ListOrdered, ScrollText } from 'lucide-react'
+import { Users, Trophy, Medal, CalendarDays, Swords, ListOrdered, ScrollText } from 'lucide-react'
 import { cn } from '../../lib/utils'
 
-const sections = [
+export const NAV_SECTIONS = [
   {
     label: 'Players',
     links: [
       { to: '/players', label: 'Players', icon: Users },
       { to: '/rankings', label: 'Rankings', icon: ListOrdered },
+      { to: '/h2h', label: 'Head to head', icon: Swords },
     ],
   },
   {
-    label: 'Championships',
+    label: 'Cups',
     links: [
       { to: '/championships', label: 'Championships', icon: Trophy },
-      { to: '/winners', label: 'Hall of Fame', icon: Medal },
-      { to: '/recap', label: 'Year Recap', icon: BarChart2 },
-      { to: '/records', label: 'All-Time Records', icon: ScrollText },
-    ],
-  },
-  {
-    label: 'Analysis',
-    links: [
-      { to: '/h2h', label: 'Head to Head', icon: Swords },
+      { to: '/winners', label: 'Hall of fame', icon: Medal },
+      { to: '/records', label: 'Records', icon: ScrollText },
+      { to: '/recap', label: 'Year recap', icon: CalendarDays },
     ],
   },
 ]
 
+/** Centre-circle mark + wordmark. */
+export function Wordmark({ compact = false }: { compact?: boolean }) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <svg viewBox="0 0 32 32" className={compact ? 'w-7 h-7' : 'w-9 h-9'} aria-hidden="true">
+        <circle cx="16" cy="16" r="12" fill="none" stroke="#F2C14E" strokeWidth="2.25" />
+        <path d="M16 1.5v29" stroke="#F2C14E" strokeWidth="2.25" />
+        <circle cx="16" cy="16" r="2.75" fill="#F2C14E" />
+      </svg>
+      <span
+        className={cn(
+          'font-display font-black leading-none tracking-[-0.01em] text-chalk',
+          compact ? 'text-2xl' : 'text-[28px]',
+        )}
+      >
+        Friends Cup
+      </span>
+    </div>
+  )
+}
+
 export default function Sidebar() {
   return (
-    <aside className="w-56 shrink-0 bg-gh-surface border-r border-gh-border flex flex-col">
-      {/* Logo */}
-      <div className="flex items-center gap-3 px-4 py-5 border-b border-gh-border">
-        <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-lg leading-none shrink-0">
-          ⚽
-        </div>
-        <div>
-          <p className="text-sm font-bold text-zinc-100 leading-tight">Cup Manager</p>
-          <p className="text-xs text-zinc-500">Tournament dashboard</p>
-        </div>
+    <aside className="hidden lg:flex w-60 shrink-0 flex-col bg-turf-surface border-r border-turf-line">
+      <div className="px-5 pt-7 pb-8">
+        <Wordmark />
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 p-2 space-y-3 overflow-y-auto scrollbar-thin">
-        {sections.map(section => (
+      <nav className="flex-1 px-3 pb-6 space-y-7 overflow-y-auto scrollbar-thin" aria-label="Main">
+        {NAV_SECTIONS.map(section => (
           <div key={section.label}>
-            <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-600">
-              {section.label}
-            </p>
+            <p className="px-3 mb-2 text-xs font-semibold text-chalk-faint">{section.label}</p>
             <div className="space-y-0.5">
               {section.links.map(({ to, label, icon: Icon }) => (
                 <NavLink
@@ -55,15 +61,19 @@ export default function Sidebar() {
                   to={to}
                   className={({ isActive }) =>
                     cn(
-                      'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                      'relative flex items-center gap-3 px-3 py-2 rounded-lg text-[15px] font-medium transition-colors',
                       isActive
-                        ? 'bg-emerald-500/15 text-emerald-400'
-                        : 'text-zinc-400 hover:text-zinc-100 hover:bg-gh-elevated',
+                        ? 'bg-turf-raised text-chalk before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[3px] before:rounded-full before:bg-gold'
+                        : 'text-chalk-muted hover:text-chalk hover:bg-turf-raised/60',
                     )
                   }
                 >
-                  <Icon className="w-4 h-4 shrink-0" />
-                  {label}
+                  {({ isActive }) => (
+                    <>
+                      <Icon className={cn('w-4 h-4 shrink-0', isActive ? 'text-gold' : 'text-chalk-faint')} />
+                      {label}
+                    </>
+                  )}
                 </NavLink>
               ))}
             </div>
@@ -71,5 +81,35 @@ export default function Sidebar() {
         ))}
       </nav>
     </aside>
+  )
+}
+
+/** Compact top bar with a horizontally scrolling nav for small screens. */
+export function MobileBar() {
+  const links = NAV_SECTIONS.flatMap(s => s.links)
+  return (
+    <div className="lg:hidden sticky top-0 z-40 bg-turf-surface/95 backdrop-blur border-b border-turf-line">
+      <div className="px-4 pt-4 pb-3">
+        <Wordmark compact />
+      </div>
+      <nav className="flex gap-1.5 px-4 pb-3 overflow-x-auto scrollbar-none" aria-label="Main">
+        {links.map(({ to, label }) => (
+          <NavLink
+            key={to}
+            to={to}
+            className={({ isActive }) =>
+              cn(
+                'shrink-0 px-3 py-1.5 rounded-full text-sm font-medium border transition-colors',
+                isActive
+                  ? 'bg-gold text-turf-bg border-gold'
+                  : 'text-chalk-muted border-turf-line hover:text-chalk',
+              )
+            }
+          >
+            {label}
+          </NavLink>
+        ))}
+      </nav>
+    </div>
   )
 }

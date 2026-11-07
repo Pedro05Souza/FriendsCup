@@ -51,6 +51,24 @@ export function medal(index: number) {
   return ['🥇', '🥈', '🥉'][index] ?? `${index + 1}.`
 }
 
+/** "COPA NABOR" → "Nabor" */
+export function fmtCup(name: string) {
+  const short = name.replace(/^COPA\s+/i, '')
+  return short.charAt(0).toUpperCase() + short.slice(1).toLowerCase()
+}
+
+/** "COPA NABOR" → "Copa Nabor" */
+export function fmtCupFull(name: string) {
+  return name.toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
+}
+
+/** Text colour for an overall rating tier. */
+export function ratingTone(value: number) {
+  if (value >= 75) return 'text-win'
+  if (value >= 50) return 'text-gold'
+  return 'text-loss'
+}
+
 export async function copyToClipboard(text: string) {
   await navigator.clipboard.writeText(text)
 }

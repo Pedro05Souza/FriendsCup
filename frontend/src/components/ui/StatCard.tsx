@@ -9,16 +9,16 @@ interface StatCardProps {
 
 export default function StatCard({ label, value, className, valueClassName }: StatCardProps) {
   return (
-    <div
-      className={cn(
-        'bg-gh-elevated border border-gh-border rounded-lg p-4 text-center',
-        className,
-      )}
-    >
-      <div className={cn('text-2xl font-bold text-emerald-400 leading-none', valueClassName)}>
+    <div className={cn('bg-turf-raised/60 border border-turf-line rounded-xl px-4 py-3', className)}>
+      <div
+        className={cn(
+          'font-display text-4xl font-extrabold leading-none tabular-nums text-chalk',
+          valueClassName,
+        )}
+      >
         {value}
       </div>
-      <div className="mt-1.5 text-[11px] text-zinc-500 uppercase tracking-wider">{label}</div>
+      <div className="mt-1.5 text-xs text-chalk-muted">{label}</div>
     </div>
   )
 }

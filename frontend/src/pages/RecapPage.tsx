@@ -1,49 +1,71 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { championshipsApi } from '../api/championships'
 import type { RecapData, RecapGoldenBoot, RecapDefense, RecapTitles, RecapRunnerUp } from '../types'
-import { medal } from '../lib/utils'
-import Badge from '../components/ui/Badge'
+import { fmtCup } from '../lib/utils'
 import Button from '../components/ui/Button'
-import Spinner from '../components/ui/Spinner'
+import PageHeader from '../components/ui/PageHeader'
+import RankNumber from '../components/ui/RankNumber'
+import { Empty, ErrorNote, Loading } from '../components/ui/States'
 
-function PodiumTable<T>({
+function Podium<T>({
   title,
+  description,
   items,
   renderRow,
 }: {
   title: string
+  description: string
   items: T[]
   renderRow: (item: T, index: number) => React.ReactNode
 }) {
   return (
-    <div className="bg-gh-surface border border-gh-border rounded-lg overflow-hidden">
-      <div className="px-5 py-3 border-b border-gh-border">
-        <h3 className="text-sm font-semibold">{title}</h3>
+    <section className="panel overflow-hidden">
+      <div className="px-6 pt-5 pb-4 border-b border-turf-line">
+        <h2 className="panel-title">{title}</h2>
+        <p className="text-sm text-chalk-faint mt-1.5">{description}</p>
       </div>
       {items.length === 0 ? (
-        <p className="text-sm text-zinc-600 text-center py-8">No data</p>
+        <Empty title="Nobody yet" className="py-8" />
       ) : (
-        <table className="w-full text-sm">
-          <tbody>
-            {items.slice(0, 10).map((item, i) => renderRow(item, i))}
-          </tbody>
-        </table>
+        <ol className="divide-y divide-turf-line/60">
+          {items.slice(0, 10).map((item, i) => (
+            <li key={i} className="grid grid-cols-[2.5rem,1fr,auto] items-center gap-3 px-6 py-3">
+              <RankNumber rank={i + 1} className="text-2xl" />
+              {renderRow(item, i)}
+            </li>
+          ))}
+        </ol>
       )}
+    </section>
+  )
+}
+
+function Metric({ value, unit, sub }: { value: React.ReactNode; unit: string; sub?: string }) {
+  return (
+    <div className="text-right">
+      <span className="font-display text-3xl font-extrabold leading-none tabular-nums text-chalk">{value}</span>
+      <span className="ml-1.5 text-sm text-chalk-muted">{unit}</span>
+      {sub && <p className="text-xs text-chalk-faint tabular-nums mt-0.5">{sub}</p>}
     </div>
   )
 }
 
-function Row({ children }: { children: React.ReactNode }) {
+function CupList({ cups }: { cups: Record<string, number> }) {
   return (
-    <tr className="border-b border-gh-border/40 last:border-0 hover:bg-gh-elevated/40 transition-colors">
-      {children}
-    </tr>
+    <div className="flex flex-wrap justify-end gap-1.5">
+      {Object.entries(cups).map(([cup, n]) => (
+        <span
+          key={cup}
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-chalk-muted bg-turf-raised border border-turf-line rounded-md px-2 py-1"
+        >
+          {fmtCup(cup)}
+          <span className="font-bold text-gold tabular-nums">×{n}</span>
+        </span>
+      ))}
+    </div>
   )
-}
-
-function Td({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <td className={`px-4 py-2.5 ${className}`}>{children}</td>
 }
 
 export default function RecapPage() {
@@ -56,117 +78,117 @@ export default function RecapPage() {
     enabled: !!activeYear,
   })
 
+  const show = (y: string) => {
+    if (!y) return
+    setYear(y)
+    setActiveYear(y)
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!year) return
-    setActiveYear(year)
+    show(year)
   }
 
   return (
     <>
-      <div className="mb-6">
-        <h1 className="text-xl font-bold text-zinc-100">Year Recap</h1>
-        <p className="text-sm text-zinc-500 mt-0.5">Annual statistics and podiums</p>
-      </div>
+      <PageHeader
+        title={activeYear ? `${activeYear} in review` : 'Year recap'}
+        description="Who scored, who defended and who lifted cups in a single season."
+        actions={
+          <form onSubmit={handleSubmit} className="flex items-center gap-2">
+            <div className="flex items-center rounded-lg border border-turf-line bg-turf-surface">
+              <button
+                type="button"
+                aria-label="Previous year"
+                onClick={() => show(String(Number(year) - 1))}
+                className="p-2.5 text-chalk-muted hover:text-chalk"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <label htmlFor="recap-year" className="sr-only">Year</label>
+              <input
+                id="recap-year"
+                type="number"
+                value={year}
+                onChange={e => setYear(e.target.value)}
+                min={2000}
+                max={2099}
+                className="w-20 bg-transparent text-center font-display text-2xl font-extrabold text-chalk tabular-nums focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+              />
+              <button
+                type="button"
+                aria-label="Next year"
+                onClick={() => show(String(Number(year) + 1))}
+                className="p-2.5 text-chalk-muted hover:text-chalk"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+            <Button variant="primary" type="submit" loading={isLoading}>
+              Show recap
+            </Button>
+          </form>
+        }
+      />
 
-      <div className="bg-gh-surface border border-gh-border rounded-lg p-5 mb-6">
-        <form onSubmit={handleSubmit} className="flex gap-3 items-end">
-          <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1.5">Year</label>
-            <input
-              type="number"
-              value={year}
-              onChange={e => setYear(e.target.value)}
-              min={2000}
-              max={2099}
-              className="w-28 px-3 py-2 rounded-md border border-gh-border bg-gh-bg text-sm text-zinc-100 focus:outline-none focus:border-emerald-500"
-            />
-          </div>
-          <Button variant="primary" type="submit" loading={isLoading}>
-            Generate Recap
-          </Button>
-        </form>
-      </div>
-
-      {error && (
-        <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-4">
-          {(error as Error).message}
-        </p>
-      )}
-
-      {isLoading && (
-        <div className="flex justify-center py-12">
-          <Spinner />
+      {!activeYear && (
+        <div className="panel">
+          <Empty title="Pick a season" hint="Choose a year and select “Show recap” to see that season’s podiums." />
         </div>
       )}
+
+      {error && <ErrorNote error={error} className="mb-4" />}
+      {isLoading && <Loading />}
 
       {data && (() => {
         const d = data as RecapData
         return (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Golden Boot */}
-            <PodiumTable
-              title="⚽ Golden Boot"
+            <Podium
+              title="Golden boot"
+              description="Most goals scored"
               items={d.goldenBootPodium}
-              renderRow={(p: RecapGoldenBoot, i) => (
-                <Row key={p.playerId}>
-                  <Td className="w-8">{medal(i)}</Td>
-                  <Td className="font-medium">{p.playerName}</Td>
-                  <Td><span className="font-bold text-emerald-400">{p.goals}</span> <span className="text-zinc-500">goals</span></Td>
-                  <Td className="text-zinc-500 text-xs">{p.avgGoals}/match</Td>
-                </Row>
+              renderRow={(p: RecapGoldenBoot) => (
+                <>
+                  <span className="font-semibold truncate">{p.playerName}</span>
+                  <Metric value={p.goals} unit="goals" sub={`${p.avgGoals} per match`} />
+                </>
               )}
             />
 
-            {/* Best Defense */}
-            <PodiumTable
-              title="🛡️ Best Defense"
+            <Podium
+              title="Best defense"
+              description="Fewest goals conceded"
               items={d.defensePodium}
-              renderRow={(p: RecapDefense, i) => (
-                <Row key={p.playerId}>
-                  <Td className="w-8">{medal(i)}</Td>
-                  <Td className="font-medium">{p.playerName}</Td>
-                  <Td><span className="font-bold text-blue-400">{p.goalsConceded}</span> <span className="text-zinc-500">conceded</span></Td>
-                  <Td className="text-zinc-500 text-xs">{p.avgGoalsConceded}/match</Td>
-                </Row>
+              renderRow={(p: RecapDefense) => (
+                <>
+                  <span className="font-semibold truncate">{p.playerName}</span>
+                  <Metric value={p.goalsConceded} unit="conceded" sub={`${p.avgGoalsConceded} per match`} />
+                </>
               )}
             />
 
-            {/* Most Titles */}
-            <PodiumTable
-              title="🏆 Most Titles"
+            <Podium
+              title="Most titles"
+              description="Cups won this season"
               items={d.titlesPodium}
-              renderRow={(p: RecapTitles, i) => (
-                <Row key={p.playerId}>
-                  <Td className="w-8">{medal(i)}</Td>
-                  <Td className="font-medium">{p.playerName}</Td>
-                  <Td>
-                    <div className="flex flex-wrap gap-1">
-                      {Object.entries(p.titlesWon).map(([cup, n]) => (
-                        <Badge key={cup} variant="green">{cup} ×{n}</Badge>
-                      ))}
-                    </div>
-                  </Td>
-                </Row>
+              renderRow={(p: RecapTitles) => (
+                <>
+                  <span className="font-semibold truncate">{p.playerName}</span>
+                  <CupList cups={p.titlesWon} />
+                </>
               )}
             />
 
-            {/* Runner Ups */}
-            <PodiumTable
-              title="🥈 Runner Ups"
+            <Podium
+              title="Runners-up"
+              description="Lost in a final"
               items={d.runnerUpPodium}
-              renderRow={(p: RecapRunnerUp, i) => (
-                <Row key={p.playerId}>
-                  <Td className="w-8">{medal(i)}</Td>
-                  <Td className="font-medium">{p.playerName}</Td>
-                  <Td>
-                    <div className="flex flex-wrap gap-1">
-                      {Object.entries(p.runnerUps).map(([cup, n]) => (
-                        <Badge key={cup} variant="yellow">{cup} ×{n}</Badge>
-                      ))}
-                    </div>
-                  </Td>
-                </Row>
+              renderRow={(p: RecapRunnerUp) => (
+                <>
+                  <span className="font-semibold truncate">{p.playerName}</span>
+                  <CupList cups={p.runnerUps} />
+                </>
               )}
             />
           </div>

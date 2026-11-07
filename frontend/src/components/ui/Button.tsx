@@ -13,18 +13,18 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variants: Record<Variant, string> = {
   primary:
-    'bg-emerald-600 text-white hover:bg-emerald-500 border-transparent',
+    'bg-gold text-turf-bg border-gold hover:bg-[#F7CF6B] hover:border-[#F7CF6B] font-semibold',
   ghost:
-    'bg-transparent text-zinc-400 border-gh-border hover:text-zinc-100 hover:border-zinc-500 hover:bg-gh-elevated',
+    'bg-transparent text-chalk-muted border-turf-line hover:text-chalk hover:border-chalk-faint',
   danger:
-    'bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20',
+    'bg-transparent text-loss border-loss/30 hover:bg-loss/10 hover:border-loss/60',
   subtle:
-    'bg-gh-elevated text-zinc-300 border-gh-border hover:border-zinc-500',
+    'bg-turf-raised text-chalk border-turf-line hover:border-chalk-faint',
 }
 
 const sizes: Record<Size, string> = {
-  sm: 'px-2.5 py-1 text-xs rounded',
-  md: 'px-4 py-1.5 text-sm rounded-md',
+  sm: 'h-8 px-2.5 text-xs rounded-md',
+  md: 'h-10 px-4 text-sm rounded-lg',
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -32,7 +32,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     <button
       ref={ref}
       className={cn(
-        'inline-flex items-center gap-1.5 font-medium border transition-colors cursor-pointer',
+        'inline-flex items-center justify-center gap-1.5 font-medium border transition-colors cursor-pointer whitespace-nowrap',
         'disabled:opacity-40 disabled:cursor-not-allowed',
         variants[variant],
         sizes[size],
@@ -41,7 +41,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       disabled={disabled || loading}
       {...props}
     >
-      {loading && <Spinner className="w-3.5 h-3.5" />}
+      {loading && <Spinner className={cn('w-3.5 h-3.5', variant === 'primary' && 'border-turf-bg/20 border-t-turf-bg')} />}
       {children}
     </button>
   ),

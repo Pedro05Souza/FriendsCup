@@ -36,7 +36,18 @@ export default function App() {
           </Route>
         </Routes>
       </HashRouter>
-      <Toaster richColors position="bottom-right" />
+      <Toaster
+        theme="dark"
+        position="bottom-right"
+        toastOptions={{
+          style: {
+            background: '#183428',
+            border: '1px solid #264638',
+            color: '#EEF3EF',
+            fontFamily: 'Figtree, system-ui, sans-serif',
+          },
+        }}
+      />
     </QueryClientProvider>
   )
 }
