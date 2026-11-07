@@ -19,5 +19,7 @@ WORKDIR /app
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/package.json ./
+# The built frontend, served by NestJS as static files
+COPY --from=build /app/public ./public
 
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/main.js"]
