@@ -10,7 +10,6 @@ import {
   playerRepositoryToken,
 } from 'src/domain/interfaces/player.interface';
 import { MatchPhase } from 'src/domain/constants';
-import { matchWinnerId } from 'src/domain/match-result';
 import {
   CupFinish,
   PlayerSummaryCupDto,
@@ -35,30 +34,6 @@ const PHASE_DEPTH: Record<MatchPhase, number> = {
   THIRD_PLACE: 5,
   FINALS: 6,
 };
-
-/**
- * The winning side of a match. Trusts the stored winner when it is one of the
- * two sides; otherwise (bad data) falls back to what the score says.
- */
-function effectiveWinnerId(match: PlayerSummaryMatchData): string | null {
-  const [first, second] = match.participants;
-  if (!first || !second) return match.winnerId;
-  if (match.winnerId === first.id || match.winnerId === second.id) {
-    return match.winnerId;
-  }
-  return matchWinnerId(
-    {
-      participantId: first.id,
-      goals: first.goals,
-      penaltyShootoutGoals: first.penaltyShootoutGoals,
-    },
-    {
-      participantId: second.id,
-      goals: second.goals,
-      penaltyShootoutGoals: second.penaltyShootoutGoals,
-    },
-  );
-}
 
 /**
  * Everything the player page needs in one response: their cup-by-cup history,
@@ -137,10 +112,10 @@ export class GetPlayerSummaryUsecase {
       finish = 'CHAMPION';
       finishRank = 0;
     } else if (final) {
-      finish = effectiveWinnerId(final) ? 'RUNNER_UP' : 'FINALIST';
+      finish = final.winnerId ? 'RUNNER_UP' : 'FINALIST';
       finishRank = 1;
-    } else if (thirdPlace && effectiveWinnerId(thirdPlace)) {
-      const wonThird = mySideIds.has(effectiveWinnerId(thirdPlace)!);
+    } else if (thirdPlace?.winnerId) {
+      const wonThird = mySideIds.has(thirdPlace.winnerId);
       finish = wonThird ? 'THIRD' : 'FOURTH';
       finishRank = wonThird ? 2 : 3;
     } else if (myMatches.length > 0) {
@@ -169,7 +144,8 @@ export class GetPlayerSummaryUsecase {
       phase,
       finishRank,
       playedFinal: !!final,
-      wonFinal: !!final && mySideIds.has(effectiveWinnerId(final) ?? ''),
+      wonFinal:
+        !!final && final.winnerId !== null && mySideIds.has(final.winnerId),
       goldenBoot: this._wonGoldenBoot(championship, mySideIds),
     };
   }
@@ -234,11 +210,10 @@ export class GetPlayerSummaryUsecase {
           goalsAgainst: 0,
         };
 
-        const winnerId = effectiveWinnerId(match);
         record.matchesPlayed += 1;
-        if (winnerId === playerId) record.wins += 1;
-        else if (winnerId === opponent.id) record.losses += 1;
-        else record.draws += 1;
+        if (match.winnerId === playerId) record.wins += 1;
+        else if (match.winnerId === opponent.id) record.losses += 1;
+        else if (match.winnerId === null) record.draws += 1;
         record.goalsFor += me.goals;
         record.goalsAgainst += opponent.goals;
 
