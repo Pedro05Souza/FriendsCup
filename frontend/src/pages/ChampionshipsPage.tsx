@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Search, Plus, ChevronDown, Trophy, Goal, Users } from 'lucide-react'
@@ -470,15 +471,16 @@ function ChampionshipDetail({ champId }: { champId: string }) {
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {c.players.map(p => (
-                    <span
+                    <Link
                       key={p.id}
-                      className="inline-flex items-center gap-1.5 bg-turf-raised border border-turf-line rounded-md px-2.5 py-1 text-sm text-chalk"
+                      to={`/players/${p.id}`}
+                      className="inline-flex items-center gap-1.5 bg-turf-raised border border-turf-line rounded-md px-2.5 py-1 text-sm text-chalk hover:border-gold/50 transition-colors"
                     >
                       {p.name}
                       {p.overallRating != null && (
                         <span className="text-xs font-bold text-chalk-faint tabular-nums">{p.overallRating}</span>
                       )}
-                    </span>
+                    </Link>
                   ))}
                 </div>
               </div>
@@ -616,20 +618,21 @@ function ChampionshipList({
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ChampionshipsPage() {
-  const [inputId, setInputId] = useState('')
-  const [activeId, setActiveId] = useState('')
+  const { id: activeId = '' } = useParams()
+  const navigate = useNavigate()
+  const [inputId, setInputId] = useState(activeId)
   const [createOpen, setCreateOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const handleSearch = () => {
     const id = inputId.trim()
     if (!id) { toast.error('Enter a championship ID'); return }
-    setActiveId(id)
+    navigate(`/championships/${id}`)
   }
 
   const handleSelect = (id: string) => {
-    setActiveId(id)
     setInputId(id)
+    navigate(`/championships/${id}`)
   }
 
   return (

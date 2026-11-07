@@ -1,8 +1,12 @@
 import { NavLink } from 'react-router-dom'
-import { Users, Trophy, Medal, CalendarDays, Swords, ListOrdered, ScrollText } from 'lucide-react'
+import { Home, Users, Trophy, Medal, CalendarDays, Swords, ListOrdered, ScrollText } from 'lucide-react'
 import { cn } from '../../lib/utils'
 
 export const NAV_SECTIONS = [
+  {
+    label: '',
+    links: [{ to: '/', label: 'Home', icon: Home }],
+  },
   {
     label: 'Players',
     links: [
@@ -53,12 +57,13 @@ export default function Sidebar() {
       <nav className="flex-1 px-3 pb-6 space-y-7 overflow-y-auto scrollbar-thin" aria-label="Main">
         {NAV_SECTIONS.map(section => (
           <div key={section.label}>
-            <p className="px-3 mb-2 text-xs font-semibold text-chalk-faint">{section.label}</p>
+            {section.label && <p className="px-3 mb-2 text-xs font-semibold text-chalk-faint">{section.label}</p>}
             <div className="space-y-0.5">
               {section.links.map(({ to, label, icon: Icon }) => (
                 <NavLink
                   key={to}
                   to={to}
+                  end={to === '/'}
                   className={({ isActive }) =>
                     cn(
                       'relative flex items-center gap-3 px-3 py-2 rounded-lg text-[15px] font-medium transition-colors',
@@ -97,6 +102,7 @@ export function MobileBar() {
           <NavLink
             key={to}
             to={to}
+            end={to === '/'}
             className={({ isActive }) =>
               cn(
                 'shrink-0 px-3 py-1.5 rounded-full text-sm font-medium border transition-colors',

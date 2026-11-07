@@ -4,6 +4,7 @@ import type { ChampionshipWinnerEntry } from '../types'
 import { cn, fmtCup } from '../lib/utils'
 import PageHeader from '../components/ui/PageHeader'
 import RankNumber from '../components/ui/RankNumber'
+import PlayerLink from '../components/ui/PlayerLink'
 import { Empty, ErrorNote, Loading } from '../components/ui/States'
 
 export default function WinnersPage() {
@@ -38,7 +39,7 @@ export default function WinnersPage() {
                   <RankNumber rank={i + 1} className="text-4xl" />
                   <div className="min-w-0">
                     <p className="font-display text-3xl font-extrabold leading-none text-chalk truncate">
-                      {w.playerName}
+                      <PlayerLink id={w.playerId} name={w.playerName} />
                     </p>
                     <div className="flex flex-wrap gap-1.5 mt-2.5">
                       {w.championships.map(c => (

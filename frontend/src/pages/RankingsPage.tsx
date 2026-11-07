@@ -1,10 +1,8 @@
-import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { playersApi } from '../api/players'
-import type { Player, PlayerRanking } from '../types'
+import type { PlayerRanking } from '../types'
 import { cn, fmtCup, ratingTone } from '../lib/utils'
-import Dialog from '../components/ui/Dialog'
-import RadarChart from '../components/ui/RadarChart'
 import PageHeader from '../components/ui/PageHeader'
 import RankNumber from '../components/ui/RankNumber'
 import { Empty, ErrorNote, Loading } from '../components/ui/States'
@@ -29,24 +27,6 @@ function WinBar({ wins, draws, losses }: { wins: number; draws: number; losses: 
   )
 }
 
-function PlayerProfileModal({ player, onClose }: { player: Player; onClose: () => void }) {
-  const axes = [
-    { label: 'Attack', value: player.attack },
-    { label: 'Defense', value: player.defense },
-    { label: 'Intelligence', value: player.intelligence },
-    { label: 'Mentality', value: player.mentality },
-    { label: 'Overall', value: player.overrallRating },
-  ]
-
-  return (
-    <Dialog open onClose={onClose} title={player.name} className="sm:max-w-sm">
-      <div className="flex justify-center">
-        <RadarChart axes={axes} size={230} />
-      </div>
-    </Dialog>
-  )
-}
-
 const HEADERS: { label: string; className?: string }[] = [
   { label: 'Rank', className: 'w-16' },
   { label: 'Player' },
@@ -61,30 +41,20 @@ const HEADERS: { label: string; className?: string }[] = [
 ]
 
 export default function RankingsPage() {
-  const [profilePlayer, setProfilePlayer] = useState<Player | null>(null)
+  const navigate = useNavigate()
 
   const { data: rankings, isLoading, error } = useQuery({
     queryKey: ['rankings'],
     queryFn: playersApi.rankings,
   })
 
-  const { data: allPlayers } = useQuery({
-    queryKey: ['players-all'],
-    queryFn: playersApi.all,
-  })
-
-  const playerMap = new Map(allPlayers?.map(p => [p.id, p]) ?? [])
-
-  const handleRowClick = (r: PlayerRanking) => {
-    const p = playerMap.get(r.playerId)
-    if (p) setProfilePlayer(p)
-  }
+  const handleRowClick = (r: PlayerRanking) => navigate(`/players/${r.playerId}`)
 
   return (
     <>
       <PageHeader
         title="Rankings"
-        description="The all-time table, weighted by win rate, titles and goals per match. Select a player to see their attributes."
+        description="The all-time table, weighted by win rate, titles and goals per match. Select a player to open their page."
       />
 
       {isLoading && <Loading />}
@@ -203,7 +173,6 @@ export default function RankingsPage() {
         </section>
       )}
 
-      {profilePlayer && <PlayerProfileModal player={profilePlayer} onClose={() => setProfilePlayer(null)} />}
     </>
   )
 }

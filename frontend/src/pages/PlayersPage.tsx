@@ -1,17 +1,17 @@
 import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Copy, ChevronLeft, ChevronRight, Trash2, Pencil, BarChart2, Plus, Search, ChevronsUpDown, ChevronUp, ChevronDown } from 'lucide-react'
+import { Copy, ChevronLeft, ChevronRight, Trash2, Pencil, Plus, Search, ChevronsUpDown, ChevronUp, ChevronDown } from 'lucide-react'
 import { playersApi } from '../api/players'
-import type { FormEntry, Player, PlayerFormData, RetrospectData } from '../types'
-import { cn, fmtPhase, copyToClipboard, ratingTone } from '../lib/utils'
+import { Link } from 'react-router-dom'
+import type { FormEntry, Player, PlayerFormData } from '../types'
+import { cn, copyToClipboard, ratingTone } from '../lib/utils'
 import Button from '../components/ui/Button'
 import Dialog from '../components/ui/Dialog'
-import StatCard from '../components/ui/StatCard'
 import RatingBar from '../components/ui/RatingBar'
-import RadarChart from '../components/ui/RadarChart'
 import PageHeader from '../components/ui/PageHeader'
-import { Empty, ErrorNote, Loading } from '../components/ui/States'
+import PlayerLink from '../components/ui/PlayerLink'
+import { Empty, Loading } from '../components/ui/States'
 
 // ── Shared form ─────────────────────────────────────────────────────────────
 
@@ -96,58 +96,6 @@ function PlayerForm({
   )
 }
 
-// ── Retrospect Modal ─────────────────────────────────────────────────────────
-
-function RetrospectContent({ player }: { player: Player }) {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['retrospect', player.id],
-    queryFn: () => playersApi.retrospect(player.id),
-  })
-
-  const radarAxes = [
-    { label: 'Attack', value: player.attack },
-    { label: 'Defense', value: player.defense },
-    { label: 'Intelligence', value: player.intelligence },
-    { label: 'Mentality', value: player.mentality },
-    { label: 'Overall', value: player.overrallRating },
-  ]
-
-  return (
-    <div className="space-y-4">
-      <div className="flex justify-center">
-        <RadarChart axes={radarAxes} size={210} />
-      </div>
-
-      {isLoading && <Loading className="py-6" />}
-      {error && <ErrorNote error={error} />}
-
-      {data && (() => {
-        const d = data as RetrospectData
-        return (
-          <>
-            <div className="grid grid-cols-3 gap-2">
-              <StatCard label="Matches" value={d.totalMatches} />
-              <StatCard label="Goals" value={d.totalGoals} />
-              <StatCard label="Win rate" value={`${d.winRate}%`} valueClassName="text-gold" />
-              <StatCard label="Wins" value={d.totalWins} valueClassName="text-win" />
-              <StatCard label="Draws" value={d.totalDraws} valueClassName="text-draw" />
-              <StatCard label="Losses" value={d.totalLosses} valueClassName="text-loss" />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <StatCard label="Goals per match" value={d.averageGoalsPerMatch} valueClassName="text-3xl" />
-              <StatCard
-                label="Furthest stage reached"
-                value={fmtPhase(d.furthestStageReached)}
-                valueClassName="text-2xl text-gold"
-              />
-            </div>
-          </>
-        )
-      })()}
-    </div>
-  )
-}
-
 // ── Form chips ───────────────────────────────────────────────────────────────
 
 const FORM_COLOR: Record<string, string> = {
@@ -219,7 +167,6 @@ function PlayerRow({
   p,
   onEdit,
   onDelete,
-  onStats,
   onCopyId,
   deleteLoading,
   ovrDelta,
@@ -228,7 +175,6 @@ function PlayerRow({
   p: Player
   onEdit: (p: Player) => void
   onDelete: (p: Player) => void
-  onStats: (p: Player) => void
   onCopyId: (id: string) => void
   deleteLoading: boolean
   ovrDelta?: number
@@ -252,7 +198,7 @@ function PlayerRow({
       </td>
       {/* Name + ID */}
       <td className="px-4 py-3">
-        <p className="font-semibold text-[15px] text-chalk whitespace-nowrap">{p.name}</p>
+        <PlayerLink id={p.id} name={p.name} className="font-semibold text-[15px] text-chalk whitespace-nowrap" />
         <button
           onClick={() => onCopyId(p.id)}
           title="Copy player ID"
@@ -276,10 +222,12 @@ function PlayerRow({
       {/* Actions */}
       <td className="pl-4 pr-5 py-3">
         <div className="flex items-center justify-end gap-1.5">
-          <Button size="sm" variant="subtle" onClick={() => onStats(p)}>
-            <BarChart2 className="w-3.5 h-3.5" />
-            Profile
-          </Button>
+          <Link
+            to={`/players/${p.id}`}
+            className="inline-flex items-center h-8 px-2.5 text-xs font-medium rounded-md border bg-turf-raised text-chalk border-turf-line hover:border-chalk-faint transition-colors"
+          >
+            Open
+          </Link>
           <Button size="sm" variant="ghost" onClick={() => onEdit(p)} aria-label={`Edit ${p.name}`}>
             <Pencil className="w-3.5 h-3.5" />
           </Button>
@@ -310,7 +258,6 @@ export default function PlayersPage() {
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [createOpen, setCreateOpen] = useState(false)
   const [editPlayer, setEditPlayer] = useState<Player | null>(null)
-  const [retroPlayer, setRetroPlayer] = useState<Player | null>(null)
 
   const qc = useQueryClient()
 
@@ -474,7 +421,6 @@ export default function PlayersPage() {
                     p={p}
                     onEdit={setEditPlayer}
                     onDelete={handleDelete}
-                    onStats={setRetroPlayer}
                     onCopyId={handleCopyId}
                     deleteLoading={deleteMut.isPending && deleteMut.variables === p.id}
                     ovrDelta={statDeltas.get(p.id)?.ovr}
@@ -521,14 +467,6 @@ export default function PlayersPage() {
         )}
       </Dialog>
 
-      <Dialog
-        open={!!retroPlayer}
-        onClose={() => setRetroPlayer(null)}
-        title={retroPlayer?.name ?? ''}
-        className="sm:max-w-md"
-      >
-        {retroPlayer && <RetrospectContent player={retroPlayer} />}
-      </Dialog>
     </>
   )
 }

@@ -1,24 +1,8 @@
 import type { Match } from '../types'
 import { cn, fmtPhase } from '../lib/utils'
 import { Empty } from './ui/States'
+import { PHASE_ORDER } from '../lib/stats'
 
-// Phase display order — left to right in the bracket
-const PHASE_ORDER = [
-  'GROUP_STAGE',
-  'PLAY-INS',
-  'ROUND_OF_16',
-  'UPPER_BRACKET_QUARTER_FINALS',
-  'QUARTER_FINALS',
-  'ROUND_1_LOWER',
-  'UPPER_BRACKET_SEMIFINALS',
-  'ROUND_2_LOWER',
-  'ROUND_3_LOWER',
-  'UPPER_BRACKET_FINALS',
-  'LOWER_BRACKET_FINALS',
-  'SEMIFINALS',
-  'THIRD_PLACE',
-  'FINALS',
-]
 
 // Which phases belong to the "upper" or "lower" track for coloring
 const UPPER_PHASES = new Set([

@@ -7,6 +7,7 @@ import { fmtCup } from '../lib/utils'
 import Button from '../components/ui/Button'
 import PageHeader from '../components/ui/PageHeader'
 import RankNumber from '../components/ui/RankNumber'
+import PlayerLink from '../components/ui/PlayerLink'
 import { Empty, ErrorNote, Loading } from '../components/ui/States'
 
 function Podium<T>({
@@ -150,7 +151,7 @@ export default function RecapPage() {
               items={d.goldenBootPodium}
               renderRow={(p: RecapGoldenBoot) => (
                 <>
-                  <span className="font-semibold truncate">{p.playerName}</span>
+                  <PlayerLink id={p.playerId} name={p.playerName} className="font-semibold truncate" />
                   <Metric value={p.goals} unit="goals" sub={`${p.avgGoals} per match`} />
                 </>
               )}
@@ -162,7 +163,7 @@ export default function RecapPage() {
               items={d.defensePodium}
               renderRow={(p: RecapDefense) => (
                 <>
-                  <span className="font-semibold truncate">{p.playerName}</span>
+                  <PlayerLink id={p.playerId} name={p.playerName} className="font-semibold truncate" />
                   <Metric value={p.goalsConceded} unit="conceded" sub={`${p.avgGoalsConceded} per match`} />
                 </>
               )}
@@ -174,7 +175,7 @@ export default function RecapPage() {
               items={d.titlesPodium}
               renderRow={(p: RecapTitles) => (
                 <>
-                  <span className="font-semibold truncate">{p.playerName}</span>
+                  <PlayerLink id={p.playerId} name={p.playerName} className="font-semibold truncate" />
                   <CupList cups={p.titlesWon} />
                 </>
               )}
@@ -186,7 +187,7 @@ export default function RecapPage() {
               items={d.runnerUpPodium}
               renderRow={(p: RecapRunnerUp) => (
                 <>
-                  <span className="font-semibold truncate">{p.playerName}</span>
+                  <PlayerLink id={p.playerId} name={p.playerName} className="font-semibold truncate" />
                   <CupList cups={p.runnerUps} />
                 </>
               )}

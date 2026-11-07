@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { matchesApi } from '../api/matches'
@@ -179,6 +180,14 @@ export default function H2HPage() {
   const [p1, setP1] = useState('')
   const [p2, setP2] = useState('')
   const [query, setQuery] = useState<{ p1: string; p2: string } | null>(null)
+  const [params] = useSearchParams()
+
+  useEffect(() => {
+    const a = params.get('p1'), b = params.get('p2')
+    if (a) setP1(a)
+    if (b) setP2(b)
+    if (a && b && a !== b) setQuery({ p1: a, p2: b })
+  }, [params])
 
   const { data: allPlayers = [] } = useQuery({
     queryKey: ['players-all'],
