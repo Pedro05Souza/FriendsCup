@@ -14,10 +14,17 @@ import {
   predictMatch,
   PoissonModel,
 } from 'src/domain/prediction/poisson-model';
-import { simulateCup } from 'src/domain/prediction/cup-simulator';
+import {
+  playCup,
+  simulateCup,
+  SimulatedMatch,
+} from 'src/domain/prediction/cup-simulator';
 import {
   CupSimulationDto,
   MatchPredictionDto,
+  PlayCupDto,
+  PlayedCupDto,
+  PlayedMatchDto,
   PowerRatingsDto,
   SimulateCupDto,
 } from '../dtos/prediction.dto';
@@ -126,6 +133,45 @@ export class PredictionsUsecase {
         playerName: names.get(o.playerId)!,
         matchesInModel: model.matches.get(o.playerId) ?? 0,
       })),
+    };
+  }
+
+  /** Plays one whole cup, every match, from a seed that can be shared. */
+  async playCup(request: PlayCupDto): Promise<PlayedCupDto> {
+    const names = await this._names(request.playerIds);
+    const { model } = await this._model();
+    // Short numbers, so a cup is easy to tell a friend about
+    const seed = request.seed ?? 1 + Math.floor(Math.random() * 99999);
+    const cup = playCup(model, request.playerIds, request.format, seed);
+    const name = (id: string): string => names.get(id)!;
+
+    let counter = 0;
+    const toMatch = (m: SimulatedMatch): PlayedMatchDto => ({
+      id: `sim-${++counter}`,
+      matchPhase: m.phase,
+      participants: [
+        { id: m.home, name: name(m.home), goals: m.homeGoals },
+        { id: m.away, name: name(m.away), goals: m.awayGoals },
+      ].map((p, i) =>
+        m.shootout ? { ...p, penaltyShootoutGoals: m.shootout[i]! } : p,
+      ),
+      winnerId: m.winnerId,
+      winnerName: m.winnerId ? name(m.winnerId) : null,
+    });
+
+    return {
+      format: request.format,
+      seed,
+      championId: cup.championId,
+      championName: name(cup.championId),
+      runnerUpId: cup.runnerUpId,
+      runnerUpName: cup.runnerUpId ? name(cup.runnerUpId) : null,
+      groups: cup.groups.map((g) => ({
+        name: g.name,
+        table: g.table.map((r) => ({ ...r, playerName: name(r.playerId) })),
+        matches: g.matches.map(toMatch),
+      })),
+      knockout: cup.knockout.map(toMatch),
     };
   }
 

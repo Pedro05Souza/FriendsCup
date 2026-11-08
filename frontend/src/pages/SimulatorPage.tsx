@@ -1,13 +1,15 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Dices, Trophy } from 'lucide-react'
+import { Dices, Swords, Trophy } from 'lucide-react'
 import { championshipsApi } from '../api/championships'
 import { matchesApi } from '../api/matches'
 import { playersApi } from '../api/players'
-import type { CupFormat, CupSimulation, Player } from '../types'
+import type { CupFormat, CupSimulation, PlayedCup, Player } from '../types'
 import { cn, pct } from '../lib/utils'
 import Button from '../components/ui/Button'
+import PlayedCupView from '../components/PlayedCupView'
 import PageHeader from '../components/ui/PageHeader'
 import PlayerLink from '../components/ui/PlayerLink'
 import RankNumber from '../components/ui/RankNumber'
@@ -17,7 +19,7 @@ const SIMULATIONS = 10000
 const THIN_RECORD = 6
 
 const FORMATS: { value: CupFormat; label: string; hint: string }[] = [
-  { value: 'KNOCKOUT', label: 'Knockout', hint: 'A random bracket; draws go to penalties.' },
+  { value: 'KNOCKOUT', label: 'Knockout', hint: 'A random bracket; draws go to a penalty shootout.' },
   { value: 'GROUPS_AND_KNOCKOUT', label: 'Groups, then knockout', hint: 'Groups of about four, top two go through.' },
 ]
 
@@ -171,8 +173,19 @@ export default function SimulatorPage() {
     enabled: !!latestSolo,
   })
 
-  const [selected, setSelected] = useState<Set<string> | null>(null)
-  const [format, setFormat] = useState<CupFormat>('KNOCKOUT')
+  // A shared cup link carries its players, format and seed
+  const [params, setParams] = useSearchParams()
+  const shared = useRef({
+    seed: params.get('seed') !== null ? Number(params.get('seed')) : null,
+    players: params.get('players')?.split(',').filter(Boolean) ?? [],
+    format: (params.get('format') === 'GROUPS_AND_KNOCKOUT' ? 'GROUPS_AND_KNOCKOUT' : 'KNOCKOUT') as CupFormat,
+  }).current
+  const fromLink = shared.seed !== null && Number.isInteger(shared.seed) && shared.players.length >= 2
+
+  const [selected, setSelected] = useState<Set<string> | null>(fromLink ? new Set(shared.players) : null)
+  const [format, setFormat] = useState<CupFormat>(fromLink ? shared.format : 'KNOCKOUT')
+  // Which result to show: the odds from many cups, or one cup played out
+  const [view, setView] = useState<'odds' | 'cup'>('odds')
 
   // Start from the line-up of the latest 1v1 cup
   useEffect(() => {
@@ -190,8 +203,37 @@ export default function SimulatorPage() {
 
   const run = useMutation({
     mutationFn: () => championshipsApi.simulate({ playerIds: [...chosen], format, simulations: SIMULATIONS }),
+    onSuccess: () => {
+      setView('odds')
+      setParams({}, { replace: true })
+    },
     onError: (e: Error) => toast.error(e.message),
   })
+
+  const playOne = useMutation({
+    mutationFn: (req: { playerIds: string[]; format: CupFormat; seed?: number }) => championshipsApi.playCup(req),
+    onSuccess: (cup: PlayedCup, req) => {
+      setView('cup')
+      setParams({ seed: String(cup.seed), format: cup.format, players: req.playerIds.join(',') }, { replace: true })
+    },
+    onError: (e: Error) => toast.error(e.message),
+  })
+  const playNew = () => playOne.mutate({ playerIds: [...chosen], format })
+
+  // Opening a shared link replays that exact cup
+  useEffect(() => {
+    if (fromLink) playOne.mutate({ playerIds: shared.players, format: shared.format, seed: shared.seed! })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href)
+      toast.success('Link copied: anyone who opens it sees this exact cup')
+    } catch {
+      toast.error("Couldn't copy the link; copy it from the address bar instead")
+    }
+  }
 
   const sorted = [...(players as Player[])].sort((a, b) => a.name.localeCompare(b.name))
 
@@ -199,7 +241,7 @@ export default function SimulatorPage() {
     <>
       <PageHeader
         title="Cup simulator"
-        description="Pick who's playing and the format. The whole cup is played 10,000 times with the match model, and you get everyone's chances."
+        description="Pick who's playing and the format. Play one cup to see every match, or play it 10,000 times to see everyone's chances."
       />
 
       <section className="panel p-5 sm:p-6 mb-6">
@@ -266,25 +308,40 @@ export default function SimulatorPage() {
             </div>
             <p className="text-xs text-chalk-faint mt-2">{FORMATS.find(f => f.value === format)!.hint}</p>
           </fieldset>
-          <Button
-            variant="primary"
-            onClick={() => run.mutate()}
-            loading={run.isPending}
-            disabled={chosen.size < 2}
-          >
-            <Dices className="w-4 h-4" /> Simulate {SIMULATIONS.toLocaleString('en-US')} cups
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="subtle" onClick={playNew} loading={playOne.isPending} disabled={chosen.size < 2}>
+              <Swords className="w-4 h-4" /> Play one cup
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => run.mutate()}
+              loading={run.isPending}
+              disabled={chosen.size < 2}
+            >
+              <Dices className="w-4 h-4" /> Simulate {SIMULATIONS.toLocaleString('en-US')} cups
+            </Button>
+          </div>
         </div>
       </section>
 
       <div className="space-y-6">
-        {run.data ? (
+        {view === 'cup' && playOne.data ? (
+          <PlayedCupView
+            cup={playOne.data}
+            playerCount={playOne.variables?.playerIds.length ?? chosen.size}
+            onCopyLink={copyLink}
+            onReplay={playNew}
+            replaying={playOne.isPending}
+          />
+        ) : view === 'odds' && run.data ? (
           <Results result={run.data} />
+        ) : playOne.isPending ? (
+          <Loading className="py-14" />
         ) : (
           <div className="panel border-dashed bg-transparent">
             <Empty
               title={chosen.size < 2 ? 'Pick at least two players' : 'Ready when you are'}
-              hint={chosen.size < 2 ? undefined : 'Run the simulation to see everyone’s chances.'}
+              hint={chosen.size < 2 ? undefined : 'Play one cup to watch it unfold, or simulate 10,000 to see everyone’s chances.'}
               className="py-14"
             />
           </div>
@@ -293,7 +350,8 @@ export default function SimulatorPage() {
         <p className="text-xs leading-relaxed text-chalk-faint max-w-3xl px-1">
           How it works: every 1v1 result is used to estimate how many goals each player scores and concedes (a
           Poisson model). Duo matches aren't included. Tested on past cups using only earlier results, it picked the
-          winner of 61% of matches. Penalties are treated as a coin flip.
+          winner of 61% of matches. Penalty shootouts are five kicks each, then sudden death, with every kick
+          scored 75% of the time, so they're close to a coin flip.
         </p>
       </div>
     </>

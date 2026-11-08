@@ -4,7 +4,13 @@ import {
   type ModelMatch,
   type PoissonModel,
 } from './poisson-model';
-import { seededRandom, simulateCup, simulateScore } from './cup-simulator';
+import {
+  playCup,
+  seededRandom,
+  simulateCup,
+  simulateScore,
+  simulateShootout,
+} from './cup-simulator';
 
 const day = (n: number): Date => new Date(Date.UTC(2025, 0, 1 + n));
 
@@ -142,5 +148,100 @@ describe('simulateCup', () => {
     );
     expect(odds.reduce((s, o) => s + o.title, 0)).toBeCloseTo(1, 10);
     expect(odds.reduce((s, o) => s + o.final, 0)).toBeCloseTo(2, 10);
+  });
+});
+
+describe('simulateShootout', () => {
+  it('always has a winner, with sensible scores', () => {
+    const random = seededRandom(11);
+    let firstWins = 0;
+    for (let i = 0; i < 20000; i++) {
+      const [a, b] = simulateShootout(random);
+      expect(a).not.toBe(b);
+      // Within the first five kicks a side can't lead by more than it could catch
+      if (a <= 5 && b <= 5) expect(Math.abs(a - b)).toBeLessThanOrEqual(3);
+      if (a > b) firstWins++;
+    }
+    expect(firstWins / 20000).toBeGreaterThan(0.47);
+    expect(firstWins / 20000).toBeLessThan(0.53);
+  });
+});
+
+describe('playCup', () => {
+  const model: PoissonModel = fitPoissonModel(league());
+  const six = ['strong', 'mid', 'weak', 'p4', 'p5', 'p6'];
+
+  it('plays a knockout with byes and a champion who won the final', () => {
+    const cup = playCup(model, six, 'KNOCKOUT', 5);
+    expect(cup.groups).toEqual([]);
+    // 6 players: 2 quarter-finals (two byes), 2 semis, a final
+    expect(cup.knockout.map((m) => m.phase)).toEqual([
+      'QUARTER_FINALS',
+      'QUARTER_FINALS',
+      'SEMIFINALS',
+      'SEMIFINALS',
+      'FINALS',
+    ]);
+    const final = cup.knockout.at(-1)!;
+    expect(final.winnerId).toBe(cup.championId);
+    expect([final.home, final.away]).toContain(cup.runnerUpId);
+    for (const m of cup.knockout) {
+      const level = m.homeGoals === m.awayGoals;
+      expect(m.shootout !== null).toBe(level);
+      const homeWon = level
+        ? m.shootout![0] > m.shootout![1]
+        : m.homeGoals > m.awayGoals;
+      expect(m.winnerId).toBe(homeWon ? m.home : m.away);
+    }
+  });
+
+  it('plays groups whose tables add up, then the top two go through', () => {
+    const cup = playCup(model, [...six, 'p7', 'p8'], 'GROUPS_AND_KNOCKOUT', 9);
+    expect(cup.groups.map((g) => g.name)).toEqual(['A', 'B']);
+    for (const g of cup.groups) {
+      expect(g.matches).toHaveLength(6);
+      const points = g.table.reduce((s, r) => s + r.points, 0);
+      const draws = g.matches.filter((m) => m.winnerId === null).length;
+      expect(points).toBe(6 * 3 - draws);
+      expect(g.table.filter((r) => r.qualified)).toHaveLength(2);
+      expect(g.table[0]!.points).toBeGreaterThanOrEqual(g.table[1]!.points);
+    }
+    const qualified = cup.groups.flatMap((g) =>
+      g.table.filter((r) => r.qualified).map((r) => r.playerId),
+    );
+    const semis = cup.knockout.filter((m) => m.phase === 'SEMIFINALS');
+    expect(semis.flatMap((m) => [m.home, m.away]).sort()).toEqual(
+      qualified.sort(),
+    );
+  });
+
+  it('gives byes to group winners, not runners-up', () => {
+    const ten = [...six, 'p7', 'p8', 'p9', 'p10'];
+    for (let seed = 0; seed < 30; seed++) {
+      const cup = playCup(model, ten, 'GROUPS_AND_KNOCKOUT', seed);
+      // 3 groups → 6 qualifiers → 2 byes straight into the semis
+      const quarters = cup.knockout.filter((m) => m.phase === 'QUARTER_FINALS');
+      expect(quarters).toHaveLength(2);
+      const playedQuarter = new Set(quarters.flatMap((m) => [m.home, m.away]));
+      const winners = cup.groups.map((g) => g.table[0]!.playerId);
+      const byes = winners.filter((id) => !playedQuarter.has(id));
+      expect(byes).toHaveLength(2);
+      // Each bye player meets a quarter-final winner, not the other bye player
+      for (const m of cup.knockout.filter((x) => x.phase === 'SEMIFINALS')) {
+        expect(byes.includes(m.home) && byes.includes(m.away)).toBe(false);
+      }
+      // No group pairing in a quarter-final
+      for (const m of quarters) {
+        const group = (id: string): string =>
+          cup.groups.find((g) => g.table.some((r) => r.playerId === id))!.name;
+        expect(group(m.home)).not.toBe(group(m.away));
+      }
+    }
+  });
+
+  it('gives the same cup for the same seed', () => {
+    expect(playCup(model, six, 'KNOCKOUT', 77)).toEqual(
+      playCup(model, six, 'KNOCKOUT', 77),
+    );
   });
 });

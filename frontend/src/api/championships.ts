@@ -7,6 +7,7 @@ import type {
   RecapData,
   CupFormat,
   CupSimulation,
+  PlayedCup,
   ChampionshipRatingChanges,
 } from '../types'
 
@@ -63,6 +64,9 @@ export const championshipsApi = {
 
   simulate: (data: { playerIds: string[]; format: CupFormat; simulations?: number }) =>
     apiFetch<CupSimulation>('POST', '/championships/simulations', data),
+
+  playCup: (data: { playerIds: string[]; format: CupFormat; seed?: number }) =>
+    apiFetch<PlayedCup>('POST', '/championships/simulations/single', data),
 
   winners: () =>
     apiFetch<ChampionshipWinnerEntry[]>('GET', '/championships/winners'),

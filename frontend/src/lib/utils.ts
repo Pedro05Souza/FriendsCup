@@ -46,7 +46,8 @@ export const TOURNAMENT_NAMES = [
 ] as const
 
 export function fmtPhase(phase: string) {
-  return PHASE_LABELS[phase] ?? phase
+  // Round of 32 only comes up in the simulator, so it isn't offered when adding matches
+  return PHASE_LABELS[phase] ?? (phase === 'ROUND_OF_32' ? 'Round of 32' : phase)
 }
 
 export function medal(index: number) {

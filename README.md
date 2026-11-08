@@ -35,7 +35,7 @@
 - **Fix mistakes**: any recorded match can be edited or deleted; group tables and the champion are updated to match.
 - **Match predictor**: a Poisson model of every 1v1 result estimates each player's attack and defence, then gives win/draw/loss odds, expected goals and the most likely scores for any pairing. Recent matches count more, thin records are pulled towards the average, and draw odds are calibrated to how rarely FIFA games end level.
 - **Rating history**: every player's ratings are saved after each cup, so their page charts how their overall has moved, and each cup shows the biggest rise and fall. Ratings from the old 1–5 system are kept as given and converted to 0–100 for the chart.
-- **Cup simulator**: pick the players and a format (knockout, or groups then knockout) and the cup is played 10,000 times to give everyone's chances of winning, reaching the final and the semis.
+- **Cup simulator**: pick the players and a format (knockout, or groups then knockout) and the cup is played 10,000 times to give everyone's chances of winning, reaching the final and the semis. Or play one cup and watch it unfold: group tables, every score including penalty shootouts, the bracket and the champion's road to the title. Each cup has a number and a link, so friends can open the exact same cup.
 - **Records and yearly recap**: all-time records, a winners list, and an annual "recap" with podiums such as the golden boot (most goals) and best defense.
 
 ## Architecture
@@ -63,7 +63,7 @@ All routes are prefixed with `/api`.
 | Resource | Endpoints |
 |---|---|
 | Players | `GET /players`, `POST /players`, `POST /players/:id`, `DELETE /players/:id`, `GET /players/rankings`, `GET /players/:id/form`, `GET /players/:id/retrospect`, `GET /players/:id/summary`, `GET /players/:id/rating-history` |
-| Championships | `GET /championships`, `POST /championships`, `GET /championships/:id`, `POST /championships/:id/matches`, `PUT /championships/:id/matches/:matchId`, `DELETE /championships/:id/matches/:matchId`, `POST /championships/simulations`, `GET /championships/:id/rating-changes`, `POST /championships/:id/rating-snapshots`, `POST /championships/:id/duos`, `GET /championships/records`, `GET /championships/winners`, `GET /championships/recap/:year` |
+| Championships | `GET /championships`, `POST /championships`, `GET /championships/:id`, `POST /championships/:id/matches`, `PUT /championships/:id/matches/:matchId`, `DELETE /championships/:id/matches/:matchId`, `POST /championships/simulations`, `POST /championships/simulations/single`, `GET /championships/:id/rating-changes`, `POST /championships/:id/rating-snapshots`, `POST /championships/:id/duos`, `GET /championships/records`, `GET /championships/winners`, `GET /championships/recap/:year` |
 | Matches | `GET /matches/rivalries`, `GET /matches/history/:playerId/:opponentId`, `GET /matches/history/:playerId/:opponentId/details`, `GET /matches/predictions/:playerId/:opponentId`, `GET /matches/power-ratings` |
 
 ## Data model

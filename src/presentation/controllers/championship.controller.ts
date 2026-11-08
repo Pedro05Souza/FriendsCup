@@ -26,6 +26,8 @@ import { RatingHistoryUsecase } from 'src/application/usecases/rating-history.us
 import { ChampionshipRatingChangesDto } from 'src/application/dtos/rating-history.dto';
 import {
   CupSimulationDto,
+  PlayCupDto,
+  PlayedCupDto,
   SimulateCupDto,
 } from 'src/application/dtos/prediction.dto';
 import { GetChampionshipWinnersUsecase } from 'src/application/usecases/get-championship-winners.usecase';
@@ -66,6 +68,12 @@ export class ChampionshipController {
     @Param('championshipId') championshipId: string,
   ): Promise<{ saved: number }> {
     return this._ratingHistoryUsecase.saveChampionshipRatings(championshipId);
+  }
+
+  @Post('/simulations/single')
+  @HttpCode(200)
+  async playCup(@Body() playCupDto: PlayCupDto): Promise<PlayedCupDto> {
+    return this._predictionsUsecase.playCup(playCupDto);
   }
 
   @Post('/simulations')

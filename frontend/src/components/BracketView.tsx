@@ -7,6 +7,7 @@ import { Empty } from './ui/States'
 // Rounds of each track, earliest first
 const MAIN_TRACK = [
   'PLAY-INS',
+  'ROUND_OF_32',
   'ROUND_OF_16',
   'QUARTER_FINALS',
   'UPPER_BRACKET_QUARTER_FINALS',

@@ -82,6 +82,69 @@ export const cupSimulationDtoSchema = z.object({
   ),
 });
 
+export const playCupDtoSchema = z.object({
+  playerIds: simulateCupDtoSchema.shape.playerIds,
+  format: cupFormatEnum,
+  /** Same seed and players give the same cup, so a run can be shared. */
+  seed: z
+    .number()
+    .int()
+    .min(0)
+    .max(2 ** 31 - 1)
+    .optional(),
+});
+
+export class PlayCupDto extends createZodDto(playCupDtoSchema) {}
+
+const playedMatchSchema = z.object({
+  id: z.string(),
+  matchPhase: z.string(),
+  participants: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      goals: z.number().int(),
+      penaltyShootoutGoals: z.number().int().optional(),
+    }),
+  ),
+  winnerId: z.string().nullable(),
+  winnerName: z.string().nullable(),
+});
+
+export const playedCupDtoSchema = z.object({
+  format: cupFormatEnum,
+  seed: z.number().int(),
+  championId: z.string(),
+  championName: z.string(),
+  runnerUpId: z.string().nullable(),
+  runnerUpName: z.string().nullable(),
+  /** Empty for a straight knockout. */
+  groups: z.array(
+    z.object({
+      name: z.string(),
+      table: z.array(
+        z.object({
+          playerId: z.string(),
+          playerName: z.string(),
+          played: z.number().int(),
+          won: z.number().int(),
+          drawn: z.number().int(),
+          lost: z.number().int(),
+          goalsFor: z.number().int(),
+          goalsAgainst: z.number().int(),
+          points: z.number().int(),
+          qualified: z.boolean(),
+        }),
+      ),
+      matches: z.array(playedMatchSchema),
+    }),
+  ),
+  /** Knockout matches round by round, in bracket order. */
+  knockout: z.array(playedMatchSchema),
+});
+
+export type PlayedMatchDto = z.infer<typeof playedMatchSchema>;
+export type PlayedCupDto = z.infer<typeof playedCupDtoSchema>;
 export type MatchPredictionDto = z.infer<typeof matchPredictionDtoSchema>;
 export type PowerRatingsDto = z.infer<typeof powerRatingsDtoSchema>;
 export type CupSimulationDto = z.infer<typeof cupSimulationDtoSchema>;

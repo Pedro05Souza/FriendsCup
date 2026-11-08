@@ -58,28 +58,129 @@ export function simulateScore(
   }
 }
 
-/** A knockout tie: a draw goes to penalties, treated as a coin flip. */
+/** One match of a simulated cup. */
+export interface SimulatedMatch {
+  phase: string;
+  /** Group name for group-stage matches, e.g. "A". */
+  group: string | null;
+  home: string;
+  away: string;
+  homeGoals: number;
+  awayGoals: number;
+  /** Shootout score, when a knockout match ended level. */
+  shootout: [number, number] | null;
+  /** Null for a group-stage draw. */
+  winnerId: string | null;
+}
+
+export interface SimulatedGroupRow {
+  playerId: string;
+  played: number;
+  won: number;
+  drawn: number;
+  lost: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  points: number;
+  qualified: boolean;
+}
+
+export interface SimulatedGroup {
+  name: string;
+  /** Final standings, top first. */
+  table: SimulatedGroupRow[];
+  matches: SimulatedMatch[];
+}
+
+export interface SimulatedCup {
+  groups: SimulatedGroup[];
+  /** Knockout matches, round by round, in bracket order. Byes have no match. */
+  knockout: SimulatedMatch[];
+  championId: string;
+  runnerUpId: string | null;
+}
+
+/** Share of penalties scored, roughly what real shootouts show. */
+const PENALTY_CONVERSION = 0.75;
+
+/**
+ * A penalty shootout: five kicks each, taken in turn and stopped once one side
+ * can't catch up, then sudden death. Returns [first side, second side].
+ */
+export function simulateShootout(random: () => number): [number, number] {
+  let a = 0;
+  let b = 0;
+  for (let kick = 0; kick < 5; kick++) {
+    const left = 5 - kick - 1;
+    if (random() < PENALTY_CONVERSION) a++;
+    if (a > b + left + 1 || b > a + left) return [a, b];
+    if (random() < PENALTY_CONVERSION) b++;
+    if (Math.abs(a - b) > left) return [a, b];
+  }
+  for (;;) {
+    const sa = random() < PENALTY_CONVERSION;
+    const sb = random() < PENALTY_CONVERSION;
+    if (sa) a++;
+    if (sb) b++;
+    if (sa !== sb) return [a, b];
+  }
+}
+
+/** Phase name for a knockout round by how many bracket slots it has. */
+export function knockoutPhase(slots: number): string {
+  switch (slots) {
+    case 2:
+      return 'FINALS';
+    case 4:
+      return 'SEMIFINALS';
+    case 8:
+      return 'QUARTER_FINALS';
+    case 16:
+      return 'ROUND_OF_16';
+    default:
+      return `ROUND_OF_${slots}`;
+  }
+}
+
+/** A knockout tie: a draw goes to a penalty shootout. */
 function playKnockout(
   model: PoissonModel,
   a: string,
   b: string,
+  phase: string,
   random: () => number,
-): string {
+): SimulatedMatch {
   const [ga, gb] = simulateScore(model, a, b, random);
-  if (ga !== gb) return ga > gb ? a : b;
-  return random() < 0.5 ? a : b;
+  let shootout: [number, number] | null = null;
+  let winnerId: string;
+  if (ga !== gb) {
+    winnerId = ga > gb ? a : b;
+  } else {
+    shootout = simulateShootout(random);
+    winnerId = shootout[0] > shootout[1] ? a : b;
+  }
+  return {
+    phase,
+    group: null,
+    home: a,
+    away: b,
+    homeGoals: ga,
+    awayGoals: gb,
+    shootout,
+    winnerId,
+  };
 }
 
 /**
- * Runs a bracket and returns the champion. `reached` records, for each player,
- * the deepest round they played, as rounds left (1 = the final, 2 = semis).
+ * Runs a bracket. `reached` records, for each player, the deepest round they
+ * got to, as rounds left (1 = the final, 2 = the semis); a bye counts.
  */
 function playBracket(
   model: PoissonModel,
   entrants: string[],
   random: () => number,
   reached: Map<string, number>,
-): string {
+): { champion: string; matches: SimulatedMatch[] } {
   // Pad to a power of two with byes, spread so byes don't meet each other
   let size = 1;
   while (size < entrants.length) size *= 2;
@@ -87,8 +188,10 @@ function playBracket(
   while (round.length < size) round.push(null);
   round = interleaveByes(round);
 
+  const matches: SimulatedMatch[] = [];
   while (round.length > 1) {
     const roundsLeft = Math.log2(round.length);
+    const phase = knockoutPhase(round.length);
     for (const id of round) {
       if (id)
         reached.set(id, Math.min(reached.get(id) ?? Infinity, roundsLeft));
@@ -97,42 +200,76 @@ function playBracket(
     for (let i = 0; i < round.length; i += 2) {
       const a = round[i] ?? null;
       const b = round[i + 1] ?? null;
-      if (a && b) next.push(playKnockout(model, a, b, random));
-      else next.push(a ?? b);
+      if (a && b) {
+        const match = playKnockout(model, a, b, phase, random);
+        matches.push(match);
+        next.push(match.winnerId);
+      } else next.push(a ?? b);
     }
     round = next;
   }
-  return round[0]!;
+  return { champion: round[0]!, matches };
 }
 
-/** Put byes opposite real entrants: [p1, p2, p3, null] → [p1, null, p2, p3]. */
+/**
+ * Gives the first entrants byes and spreads them so a bye player meets the
+ * winner of a played tie next, not another bye player:
+ * [b1, b2, p1, p2, p3, p4] → [b1, –, p1, p2, b2, –, p3, p4].
+ */
 function interleaveByes(slots: Array<string | null>): Array<string | null> {
   const players = slots.filter((s): s is string => s !== null);
   const byes = slots.length - players.length;
+  const byePairs = players.slice(0, byes).map((id) => [id, null]);
+  const ties: Array<Array<string | null>> = [];
+  for (let i = byes; i < players.length; i += 2)
+    ties.push([players[i]!, players[i + 1] ?? null]);
+
   const out: Array<string | null> = [];
-  let p = 0;
-  for (let i = 0; i < slots.length / 2; i++) {
-    out.push(players[p++] ?? null);
-    out.push(i < byes ? null : (players[p++] ?? null));
+  while (byePairs.length || ties.length) {
+    const bye = byePairs.shift();
+    if (bye) out.push(...bye);
+    const tie = ties.shift();
+    if (tie) out.push(...tie);
   }
   return out;
 }
 
-/** Splits players into groups of about four and returns the top two of each. */
+/**
+ * Splits players into groups of about four, plays each as a single round
+ * robin, and returns the groups plus the knockout line-up (top two of each).
+ */
 function playGroups(
   model: PoissonModel,
   players: string[],
   random: () => number,
-): string[] {
+): { groups: SimulatedGroup[]; bracket: string[] } {
   const groupCount = Math.max(1, Math.round(players.length / 4));
   const drawn = shuffle(players, random);
-  const groups: string[][] = Array.from({ length: groupCount }, () => []);
-  drawn.forEach((id, i) => groups[i % groupCount]!.push(id));
+  const members: string[][] = Array.from({ length: groupCount }, () => []);
+  drawn.forEach((id, i) => members[i % groupCount]!.push(id));
 
+  const groups: SimulatedGroup[] = [];
   const winners: string[] = [];
   const runnersUp: string[] = [];
-  for (const group of groups) {
-    const table = new Map(group.map((id) => [id, { points: 0, gd: 0, gf: 0 }]));
+  members.forEach((group, g) => {
+    const name = String.fromCharCode(65 + g);
+    const table = new Map<string, SimulatedGroupRow>(
+      group.map((id) => [
+        id,
+        {
+          playerId: id,
+          played: 0,
+          won: 0,
+          drawn: 0,
+          lost: 0,
+          goalsFor: 0,
+          goalsAgainst: 0,
+          points: 0,
+          qualified: false,
+        },
+      ]),
+    );
+    const matches: SimulatedMatch[] = [];
     for (let i = 0; i < group.length; i++) {
       for (let j = i + 1; j < group.length; j++) {
         const a = group[i]!;
@@ -140,41 +277,142 @@ function playGroups(
         const [ga, gb] = simulateScore(model, a, b, random);
         const ta = table.get(a)!;
         const tb = table.get(b)!;
-        ta.gf += ga;
-        tb.gf += gb;
-        ta.gd += ga - gb;
-        tb.gd += gb - ga;
-        if (ga > gb) ta.points += 3;
-        else if (gb > ga) tb.points += 3;
-        else {
+        ta.played++;
+        tb.played++;
+        ta.goalsFor += ga;
+        ta.goalsAgainst += gb;
+        tb.goalsFor += gb;
+        tb.goalsAgainst += ga;
+        if (ga > gb) {
+          ta.won++;
+          tb.lost++;
+          ta.points += 3;
+        } else if (gb > ga) {
+          tb.won++;
+          ta.lost++;
+          tb.points += 3;
+        } else {
+          ta.drawn++;
+          tb.drawn++;
           ta.points += 1;
           tb.points += 1;
         }
+        matches.push({
+          phase: 'GROUP_STAGE',
+          group: name,
+          home: a,
+          away: b,
+          homeGoals: ga,
+          awayGoals: gb,
+          shootout: null,
+          winnerId: ga > gb ? a : gb > ga ? b : null,
+        });
       }
     }
-    const ranked = [...group].sort((x, y) => {
-      const tx = table.get(x)!;
-      const ty = table.get(y)!;
-      return (
-        ty.points - tx.points ||
-        ty.gd - tx.gd ||
-        ty.gf - tx.gf ||
-        random() - 0.5
-      );
-    });
-    winners.push(ranked[0]!);
-    if (ranked[1]) runnersUp.push(ranked[1]);
-  }
-
-  // Group winners meet runners-up from other groups where possible
-  const shuffledRunners = shuffle(runnersUp, random);
-  if (groupCount > 1) shuffledRunners.push(shuffledRunners.shift()!);
-  const bracket: string[] = [];
-  winners.forEach((w, i) => {
-    bracket.push(w);
-    if (shuffledRunners[i]) bracket.push(shuffledRunners[i]);
+    // Points, goal difference, goals scored, then drawing lots
+    const lots = new Map(group.map((id) => [id, random()]));
+    const ranked = [...table.values()].sort(
+      (x, y) =>
+        y.points - x.points ||
+        y.goalsFor - y.goalsAgainst - (x.goalsFor - x.goalsAgainst) ||
+        y.goalsFor - x.goalsFor ||
+        lots.get(x.playerId)! - lots.get(y.playerId)!,
+    );
+    ranked.slice(0, 2).forEach((row) => (row.qualified = true));
+    winners.push(ranked[0]!.playerId);
+    if (ranked[1]) runnersUp.push(ranked[1].playerId);
+    groups.push({ name, table: ranked, matches });
   });
-  return bracket;
+
+  // Byes go to the best group winners (then the best runners-up)
+  const qualified = winners.length + runnersUp.length;
+  let size = 1;
+  while (size < qualified) size *= 2;
+  const byes = size - qualified;
+  const groupOf = new Map(
+    groups.flatMap((g) => g.table.map((r) => [r.playerId, g.name] as const)),
+  );
+  const row = (id: string): SimulatedGroupRow =>
+    groups.flatMap((g) => g.table).find((r) => r.playerId === id)!;
+  const best = (x: string, y: string): number => {
+    const rx = row(x);
+    const ry = row(y);
+    return (
+      ry.points / ry.played - rx.points / rx.played ||
+      (ry.goalsFor - ry.goalsAgainst) / ry.played -
+        (rx.goalsFor - rx.goalsAgainst) / rx.played ||
+      ry.goalsFor / ry.played - rx.goalsFor / rx.played
+    );
+  };
+  const byWinners = [...winners].sort(best);
+  const byRunners = [...runnersUp].sort(best);
+  const seeded = [...byWinners, ...byRunners].slice(0, byes);
+  const restWinners = byWinners.filter((id) => !seeded.includes(id));
+  const restRunners = shuffle(
+    byRunners.filter((id) => !seeded.includes(id)),
+    random,
+  );
+
+  // The rest: each winner meets a runner-up from another group where possible
+  const bracket: string[] = [...seeded];
+  for (const w of restWinners) {
+    const other = restRunners.findIndex(
+      (r) => groupOf.get(r) !== groupOf.get(w),
+    );
+    const [r] = restRunners.splice(Math.max(other, 0), 1);
+    bracket.push(w);
+    if (r) bracket.push(r);
+  }
+  bracket.push(...restRunners);
+  return { groups, bracket };
+}
+
+function runCup(
+  model: PoissonModel,
+  players: string[],
+  format: CupFormat,
+  random: () => number,
+): SimulatedCup & { entrants: string[]; reached: Map<string, number> } {
+  const useGroups = format === 'GROUPS_AND_KNOCKOUT' && players.length >= 4;
+  const { groups, bracket } = useGroups
+    ? playGroups(model, players, random)
+    : { groups: [], bracket: shuffle(players, random) };
+
+  const reached = new Map<string, number>();
+  const { champion, matches } = playBracket(model, bracket, random, reached);
+  const final = matches.at(-1);
+  const runnerUpId = final
+    ? final.winnerId === final.home
+      ? final.away
+      : final.home
+    : null;
+  return {
+    groups,
+    knockout: matches,
+    championId: champion,
+    runnerUpId,
+    entrants: bracket,
+    reached,
+  };
+}
+
+/**
+ * Plays one whole cup, match by match. The same seed and inputs always give
+ * the same cup, so a run can be shared.
+ */
+export function playCup(
+  model: PoissonModel,
+  players: string[],
+  format: CupFormat,
+  seed: number,
+): SimulatedCup {
+  const { groups, knockout, championId, runnerUpId } = runCup(
+    model,
+    players,
+    format,
+    seededRandom(seed),
+  );
+  return { groups, knockout, championId, runnerUpId };
 }
 
 /**
@@ -197,13 +435,11 @@ export function simulateCup(
   );
 
   for (let run = 0; run < simulations; run++) {
-    const entrants =
-      format === 'GROUPS_AND_KNOCKOUT' && players.length >= 4
-        ? playGroups(model, players, random)
-        : shuffle(players, random);
-
-    const reached = new Map<string, number>();
-    const champion = playBracket(model, entrants, random, reached);
+    const {
+      entrants,
+      reached,
+      championId: champion,
+    } = runCup(model, players, format, random);
 
     for (const id of entrants) counts.get(id)!.knockout++;
     for (const [id, roundsLeft] of reached) {

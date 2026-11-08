@@ -328,6 +328,31 @@ export interface CupSimulation {
   }[]
 }
 
+export interface PlayedGroupRow {
+  playerId: string
+  playerName: string
+  played: number
+  won: number
+  drawn: number
+  lost: number
+  goalsFor: number
+  goalsAgainst: number
+  points: number
+  qualified: boolean
+}
+
+/** One whole cup played by the simulator, match by match. */
+export interface PlayedCup {
+  format: CupFormat
+  seed: number
+  championId: string
+  championName: string
+  runnerUpId: string | null
+  runnerUpName: string | null
+  groups: { name: string; table: PlayedGroupRow[]; matches: Match[] }[]
+  knockout: Match[]
+}
+
 // ── Rating history (snapshots after each cup) ──
 
 export type RatingScale = 'LEGACY_5' | 'POINTS_100'
