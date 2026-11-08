@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
-import { Trophy } from 'lucide-react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { Maximize2, Trophy, X } from 'lucide-react'
 import type { Match } from '../types'
 import { cn, fmtPhase } from '../lib/utils'
 import { Empty } from './ui/States'
@@ -635,6 +636,130 @@ function PosterHeader({ title }: { title?: string }) {
   )
 }
 
+// ── Poster and full screen ────────────────────────────────────────────────────
+
+const POSTER_CLS =
+  'rounded-2xl border border-turf-line bg-turf-surface bg-[radial-gradient(ellipse_at_50%_35%,rgba(242,193,78,0.07),transparent_60%),linear-gradient(180deg,rgba(255,255,255,0.015),transparent)] px-4 sm:px-6 pt-6 pb-4'
+
+/** Scales its content to fit the space it's given, centred, with no scrolling. */
+function FitToSpace({ children }: { children: React.ReactNode }) {
+  const outer = useRef<HTMLDivElement>(null)
+  const inner = useRef<HTMLDivElement>(null)
+  const [scale, setScale] = useState(1)
+  useLayoutEffect(() => {
+    const o = outer.current
+    const i = inner.current
+    if (!o || !i) return
+    const fit = () =>
+      setScale(Math.min(o.clientWidth / i.offsetWidth, o.clientHeight / i.offsetHeight, 1.75))
+    fit()
+    const ro = new ResizeObserver(fit)
+    ro.observe(o)
+    ro.observe(i)
+    return () => ro.disconnect()
+  }, [])
+  return (
+    <div ref={outer} className="relative flex-1 min-h-0 overflow-hidden">
+      <div
+        ref={inner}
+        className="absolute left-1/2 top-1/2 w-max"
+        style={{ transform: `translate(-50%, -50%) scale(${scale})` }}
+      >
+        {children}
+      </div>
+    </div>
+  )
+}
+
+/** The bracket on its own over the whole screen, scaled to fit. */
+function FullScreenBracket({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const el = ref.current
+    // Use the browser's real full screen where allowed; the overlay works either way
+    el?.requestFullscreen?.().catch(() => undefined)
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    // Leaving the browser's full screen (e.g. with Esc) closes the overlay too
+    const onFsChange = () => !document.fullscreenElement && onClose()
+    document.addEventListener('keydown', onKey)
+    document.addEventListener('fullscreenchange', onFsChange)
+    const overflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    ref.current?.querySelector<HTMLButtonElement>('[data-close]')?.focus()
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.removeEventListener('fullscreenchange', onFsChange)
+      document.body.style.overflow = overflow
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => undefined)
+    }
+  }, [onClose])
+
+  return createPortal(
+    <div
+      ref={ref}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Bracket, full screen"
+      className="fixed inset-0 z-50 flex flex-col bg-turf-bg p-3 sm:p-6"
+    >
+      <button
+        type="button"
+        data-close
+        onClick={onClose}
+        aria-label="Close full screen"
+        className="absolute right-3 top-3 sm:right-5 sm:top-5 z-10 grid place-items-center w-10 h-10 rounded-full border border-turf-line bg-turf-surface text-chalk-muted hover:text-chalk hover:border-chalk-faint transition-colors"
+      >
+        <X className="w-5 h-5" />
+      </button>
+      <FitToSpace>{children}</FitToSpace>
+    </div>,
+    document.body,
+  )
+}
+
+function Poster({
+  title,
+  rounds,
+  onSelect,
+  thirdPlace,
+}: {
+  title?: string
+  rounds: { phase: string; matches: Match[] }[]
+  onSelect?: (m: Match) => void
+  thirdPlace?: Match
+}) {
+  const [full, setFull] = useState(false)
+  const close = useCallback(() => setFull(false), [])
+  return (
+    <>
+      <section className={cn(POSTER_CLS, 'relative')}>
+        <button
+          type="button"
+          onClick={() => setFull(true)}
+          className="absolute left-3 top-3 sm:left-4 sm:top-4 z-10 inline-flex items-center gap-1.5 rounded-lg border border-turf-line bg-turf-bg/60 px-2.5 py-1.5 text-xs font-medium text-chalk-muted hover:text-chalk hover:border-chalk-faint transition-colors"
+        >
+          <Maximize2 className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Full screen</span>
+          <span className="sr-only sm:hidden">Full screen</span>
+        </button>
+        <PosterHeader title={title} />
+        <TwoSidedTrack rounds={rounds} onSelect={onSelect} thirdPlace={thirdPlace} />
+      </section>
+
+      {full && (
+        <FullScreenBracket onClose={close}>
+          {/* Read-only here: editing a match from full screen would open behind it */}
+          <section className={POSTER_CLS}>
+            <PosterHeader title={title} />
+            <TwoSidedTrack rounds={rounds} thirdPlace={thirdPlace} />
+          </section>
+        </FullScreenBracket>
+      )}
+    </>
+  )
+}
+
 // ── Main view ─────────────────────────────────────────────────────────────────
 
 interface BracketViewProps {
@@ -681,10 +806,7 @@ export default function BracketView({ matches, onSelect, title }: BracketViewPro
       )}
 
       {twoSided ? (
-        <section className="rounded-2xl border border-turf-line bg-turf-surface bg-[radial-gradient(ellipse_at_50%_35%,rgba(242,193,78,0.07),transparent_60%),linear-gradient(180deg,rgba(255,255,255,0.015),transparent)] px-4 sm:px-6 pt-6 pb-4">
-          <PosterHeader title={title} />
-          <TwoSidedTrack rounds={main} onSelect={onSelect} thirdPlace={thirdPlace} />
-        </section>
+        <Poster title={title} rounds={main} onSelect={onSelect} thirdPlace={thirdPlace} />
       ) : main.length > 0 && (
         <Track
           title={doubleElim ? 'Upper bracket' : groups.length ? 'Knockout' : undefined}
