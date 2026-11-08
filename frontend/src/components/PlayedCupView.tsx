@@ -191,10 +191,7 @@ export default function PlayedCupView({
       )}
 
       {cup.knockout.length > 0 && (
-        <section className="panel p-5 sm:p-6">
-          <h3 className="panel-title mb-4">Knockout</h3>
-          <BracketView matches={cup.knockout} />
-        </section>
+        <BracketView matches={cup.knockout} title={`Simulated cup #${cup.seed}`} />
       )}
 
       <ChampionCard cup={cup} />

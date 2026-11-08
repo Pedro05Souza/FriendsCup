@@ -3,6 +3,7 @@ import { Trophy } from 'lucide-react'
 import type { Match } from '../types'
 import { cn, fmtPhase } from '../lib/utils'
 import { Empty } from './ui/States'
+import Sponsor from './Sponsor'
 
 // Rounds of each track, earliest first
 const MAIN_TRACK = [
@@ -19,17 +20,22 @@ const MAIN_TRACK = [
 const LOWER_TRACK = ['ROUND_1_LOWER', 'ROUND_2_LOWER', 'ROUND_3_LOWER', 'LOWER_BRACKET_FINALS']
 
 // Geometry (px)
-const CARD_W = 176
-const CARD_H = 74
+const CARD_W = 164
+const CARD_H = 64
 const COL_GAP = 40
 const ROW_GAP = 18
 const HEADER_H = 34
 const CHAMP_W = 168
+// Two-sided bracket
+const SIDE_GAP = 26
+const CENTER_W = 196
+const CHAMP_H = 92
 
 const winnerOf = (m: Match) => m.winnerId ?? null
 
 // ── Match card ────────────────────────────────────────────────────────────────
 
+/** A scoreboard-style match: names on the left, score boxes on the right, the winner's lit up. */
 function Card({
   match,
   highlight,
@@ -48,15 +54,34 @@ function Card({
   const row = (p: Match['participants'][number] | undefined) => {
     const wins = !!p && done && match.winnerId === p.id
     return (
-      <div className={cn('flex-1 flex items-center gap-2 px-3', wins && 'bg-chalk/[0.045]')}>
-        <span className={cn('flex-1 truncate text-[13px]', wins ? 'font-semibold text-chalk' : 'text-chalk-faint')}>
-          {p?.name ?? 'TBD'}
-        </span>
-        {hasPens && <span className="text-[11px] tabular-nums text-chalk-faint">({p?.penaltyShootoutGoals ?? 0})</span>}
+      <div className="flex-1 flex items-stretch min-h-0">
         <span
           className={cn(
-            'font-display text-xl font-extrabold tabular-nums w-5 text-right leading-none',
-            wins ? (highlight === 'final' ? 'text-gold' : 'text-chalk') : 'text-chalk-faint',
+            'flex-1 flex items-center px-2.5 truncate text-[13px]',
+            wins ? 'font-semibold text-chalk bg-turf-raised' : 'text-chalk-muted bg-turf-surface',
+          )}
+        >
+          <span className="truncate">{p?.name ?? 'TBD'}</span>
+        </span>
+        {hasPens && (
+          <span
+            title="Penalty shootout"
+            className={cn(
+              'w-7 grid place-items-center text-[12px] tabular-nums bg-turf-bg',
+              wins ? 'text-chalk font-semibold' : 'text-chalk-faint',
+            )}
+          >
+            {p?.penaltyShootoutGoals ?? 0}
+          </span>
+        )}
+        <span
+          className={cn(
+            'w-9 grid place-items-center font-display text-xl font-extrabold tabular-nums leading-none',
+            wins
+              ? highlight === 'final'
+                ? 'bg-gold text-turf-bg'
+                : 'bg-chalk text-turf-bg'
+              : 'bg-turf-bg text-chalk-faint',
           )}
         >
           {p?.goals ?? 0}
@@ -66,8 +91,8 @@ function Card({
   }
 
   const cls = cn(
-    'absolute flex flex-col text-left rounded-lg overflow-hidden bg-turf-bg border divide-y divide-turf-line/70',
-    highlight === 'final' && done ? 'border-gold/50 shadow-[0_0_0_3px_rgba(242,193,78,0.08)]' : 'border-turf-line',
+    'absolute flex flex-col gap-px text-left rounded-md overflow-hidden bg-turf-line border',
+    highlight === 'final' && done ? 'border-gold/60 shadow-[0_0_0_3px_rgba(242,193,78,0.10)]' : 'border-turf-line',
     onSelect && 'hover:border-chalk-faint transition-colors cursor-pointer focus-visible:z-10',
   )
   const body = (
@@ -211,14 +236,22 @@ function Connectors({
 
 // ── Tracks ────────────────────────────────────────────────────────────────────
 
-/** True while there's more content to the right; drives a fade that hints at scrolling. */
-function useMoreToRight() {
+/**
+ * Whether there's more content to either side; drives fades that hint at
+ * scrolling. `centre` starts the scroll in the middle (for the two-sided poster).
+ */
+function useMoreToRight(centre = false) {
   const ref = useRef<HTMLDivElement>(null)
   const [more, setMore] = useState(false)
+  const [moreLeft, setMoreLeft] = useState(false)
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    const update = () => setMore(el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
+    const update = () => {
+      setMore(el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
+      setMoreLeft(el.scrollLeft > 4)
+    }
+    if (centre) el.scrollLeft = (el.scrollWidth - el.clientWidth) / 2
     update()
     el.addEventListener('scroll', update, { passive: true })
     window.addEventListener('resize', update)
@@ -226,8 +259,9 @@ function useMoreToRight() {
       el.removeEventListener('scroll', update)
       window.removeEventListener('resize', update)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-  return { ref, more }
+  return { ref, more, moreLeft }
 }
 
 function Track({
@@ -356,15 +390,262 @@ function Track({
   )
 }
 
+// ── Two-sided bracket ─────────────────────────────────────────────────────────
+
+/** An original gold cup, drawn here so the bracket has a centrepiece. */
+function TrophyArt({ size = 92 }: { size?: number }) {
+  return (
+    <svg width={size * 0.8} height={size} viewBox="0 0 64 80" aria-hidden="true">
+      <defs>
+        <linearGradient id="trophy-gold" x1="0" x2="1">
+          <stop offset="0" stopColor="#A8781F" />
+          <stop offset="0.45" stopColor="#F9DC7C" />
+          <stop offset="0.7" stopColor="#F2C14E" />
+          <stop offset="1" stopColor="#B9852A" />
+        </linearGradient>
+      </defs>
+      <path d="M15 10H6v5c0 9 6 14 12 15" fill="none" stroke="url(#trophy-gold)" strokeWidth="4" strokeLinecap="round" />
+      <path d="M49 10h9v5c0 9-6 14-12 15" fill="none" stroke="url(#trophy-gold)" strokeWidth="4" strokeLinecap="round" />
+      <path d="M13 5h38v15c0 13-8.5 23-19 23S13 33 13 20z" fill="url(#trophy-gold)" />
+      <path d="M19 9h4v11c0 7 3 12 7 15-6-1-11-7-11-15z" fill="#FFF3C4" opacity="0.45" />
+      <rect x="28" y="42" width="8" height="11" fill="url(#trophy-gold)" />
+      <path d="M21 53h22l3 8H18z" fill="url(#trophy-gold)" />
+      <rect x="14" y="61" width="36" height="13" rx="2" fill="#5E4415" />
+      <rect x="19" y="65" width="26" height="4" rx="1" fill="#F2C14E" opacity="0.55" />
+    </svg>
+  )
+}
+
+/**
+ * Splits the rounds before the final into the half that feeds each finalist,
+ * by following each match's winner forward. Matches that can't be traced
+ * (unfinished or inconsistent results) fill the smaller half.
+ */
+function splitHalves(rounds: { phase: string; matches: Match[] }[], final: Match) {
+  const half = new Map<string, 0 | 1>()
+  for (let r = rounds.length - 1; r >= 0; r--) {
+    const counts = [0, 0]
+    const unplaced: Match[] = []
+    for (const m of rounds[r]!.matches) {
+      const w = winnerOf(m)
+      let side: 0 | 1 | undefined
+      if (r === rounds.length - 1) {
+        const i = final.participants.findIndex(p => p.id === w)
+        side = i === 0 ? 0 : i === 1 ? 1 : undefined
+      } else {
+        const next = rounds[r + 1]!.matches.find(x => x.participants.some(p => p.id === w))
+        side = next ? half.get(next.id) : undefined
+      }
+      if (side === undefined) unplaced.push(m)
+      else {
+        half.set(m.id, side)
+        counts[side]!++
+      }
+    }
+    for (const m of unplaced) {
+      const side = counts[0]! <= counts[1]! ? 0 : 1
+      half.set(m.id, side)
+      counts[side]!++
+    }
+  }
+  const pick = (side: 0 | 1) => rounds.map(r => ({ phase: r.phase, matches: r.matches.filter(m => half.get(m.id) === side) }))
+  return [pick(0), pick(1)] as const
+}
+
+/**
+ * A poster-style bracket: one half runs left to right, the other right to
+ * left, and both meet at the final under the trophy in the middle.
+ */
+function TwoSidedTrack({
+  rounds,
+  onSelect,
+  thirdPlace,
+}: {
+  rounds: { phase: string; matches: Match[] }[]
+  onSelect?: (m: Match) => void
+  thirdPlace?: Match
+}) {
+  const final = rounds[rounds.length - 1]!.matches[0]!
+  const before = rounds.slice(0, -1)
+  const [leftRounds, rightRounds] = splitHalves(before, final)
+  const left = layoutTrack(leftRounds)
+  const right = layoutTrack(rightRounds)
+  const cols = before.length
+  const scroller = useMoreToRight(true)
+
+  const champion = final.winnerId ? final.participants.find(p => p.id === final.winnerId) : undefined
+
+  // Line both halves up so their last matches sit level with the final
+  const lastY = (l: TrackLayout) => l.columns[cols - 1]?.matches[0]?.y
+  const TOP = 152 // "Final" label and the trophy above the final card
+  const anchor = Math.max(lastY(left) ?? 0, lastY(right) ?? 0, TOP)
+  const offL = anchor - (lastY(left) ?? anchor)
+  const offR = anchor - (lastY(right) ?? anchor)
+
+  // Each half only takes as many columns as it has rounds with matches,
+  // counted out from the centre (a half full of byes stays narrow)
+  const span = (l: TrackLayout) => {
+    const first = l.columns.findIndex(c => c.matches.length > 0)
+    return first === -1 ? 0 : cols - first
+  }
+  const step = CARD_W + SIDE_GAP
+  const leftSpan = span(left)
+  const rightSpan = span(right)
+  const centerX = leftSpan * step
+  const finalX = centerX + (CENTER_W - CARD_W) / 2
+  const leftX = (col: number) => (col - (cols - leftSpan)) * step
+  const rightX = (col: number) => centerX + CENTER_W + SIDE_GAP + (cols - 1 - col) * step
+  const width = centerX + CENTER_W + rightSpan * step
+
+  const champTop = anchor + CARD_H + 14
+  const thirdTop = champTop + (champion ? CHAMP_H - 16 : 0) + 34
+  const height = Math.max(
+    left.height + offL,
+    right.height + offR,
+    thirdPlace ? thirdTop + CARD_H : champTop + (champion ? CHAMP_H - 16 : 0),
+  )
+
+  const edge = (x1: number, y1: number, x2: number, y2: number, key: string, gold = false) => {
+    const mid = (x1 + x2) / 2
+    return (
+      <path
+        key={key}
+        d={`M${x1},${y1} H${mid} V${y2} H${x2}`}
+        fill="none"
+        stroke={gold ? '#F2C14E' : '#3A5E4D'}
+        strokeOpacity={gold ? 0.7 : 1}
+        strokeWidth={1.5}
+        strokeLinejoin="round"
+      />
+    )
+  }
+  const mid = (y: number) => y + CARD_H / 2
+
+  const labels = (l: TrackLayout, x: (c: number) => number, align: 'left' | 'right') =>
+    l.columns.map((c, i) =>
+      c.matches.length ? (
+        <p
+          key={`${align}-${c.phase}`}
+          className={cn('absolute top-0 text-[11px] font-bold uppercase tracking-[0.14em] text-chalk-muted', align === 'right' && 'text-right')}
+          style={{ left: x(i), width: CARD_W }}
+        >
+          {fmtPhase(c.phase)}
+        </p>
+      ) : null,
+    )
+
+  const cards = (l: TrackLayout, x: (c: number) => number, off: number) =>
+    l.columns.flatMap(c =>
+      c.matches.map(p => (
+        <Card key={p.match.id} match={p.match} onSelect={onSelect} style={{ left: x(p.col), top: p.y + off }} />
+      )),
+    )
+
+  return (
+    <div className="relative">
+      <div ref={scroller.ref} className="overflow-x-auto scrollbar-thin pb-2">
+        <div className="relative mx-auto" style={{ width, height: HEADER_H + height }}>
+          {labels(left, leftX, 'left')}
+          {labels(right, rightX, 'right')}
+
+          <svg className="absolute left-0 pointer-events-none" style={{ top: HEADER_H }} width={width} height={height} aria-hidden="true">
+            {left.edges.map(({ from, to }, i) =>
+              edge(leftX(from.col) + CARD_W, mid(from.y + offL), leftX(to.col), mid(to.y + offL), `l${i}`),
+            )}
+            {right.edges.map(({ from, to }, i) =>
+              edge(rightX(from.col), mid(from.y + offR), rightX(to.col) + CARD_W, mid(to.y + offR), `r${i}`),
+            )}
+            {left.columns[cols - 1]?.matches.map(p =>
+              edge(leftX(cols - 1) + CARD_W, mid(p.y + offL), finalX, mid(anchor), `lf${p.match.id}`, true),
+            )}
+            {right.columns[cols - 1]?.matches.map(p =>
+              edge(rightX(cols - 1), mid(p.y + offR), finalX + CARD_W, mid(anchor), `rf${p.match.id}`, true),
+            )}
+          </svg>
+
+          <div className="absolute left-0 right-0" style={{ top: HEADER_H }}>
+            {cards(left, leftX, offL)}
+            {cards(right, rightX, offR)}
+
+            {/* Centre: "Final", the trophy, the final, the champion */}
+            <div className="absolute flex flex-col items-center" style={{ left: centerX, width: CENTER_W, top: anchor - TOP }}>
+              <p className="font-display text-2xl font-black uppercase tracking-[0.3em] text-chalk pl-[0.3em]">Final</p>
+              <div className="mt-1 drop-shadow-[0_6px_18px_rgba(242,193,78,0.35)]">
+                <TrophyArt />
+              </div>
+            </div>
+            <Card match={final} highlight="final" onSelect={onSelect} style={{ left: finalX, top: anchor }} />
+
+            {champion && (
+              <div
+                className="absolute flex flex-col items-center justify-center text-center rounded-xl border border-gold/50 bg-[linear-gradient(160deg,rgba(242,193,78,0.20),rgba(242,193,78,0.04))] px-3"
+                style={{ left: finalX, top: champTop, width: CARD_W, height: CHAMP_H - 16 }}
+              >
+                <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-gold">
+                  <Trophy className="w-3.5 h-3.5" /> Champion
+                </p>
+                <p className="font-display text-[1.7rem] font-black leading-tight text-chalk truncate max-w-full">{champion.name}</p>
+              </div>
+            )}
+
+            {thirdPlace && (
+              <>
+                <p
+                  className="absolute text-center text-[11px] font-bold uppercase tracking-[0.14em] text-bronze"
+                  style={{ left: finalX, width: CARD_W, top: thirdTop - 20 }}
+                >
+                  Third place
+                </p>
+                <Card match={thirdPlace} onSelect={onSelect} style={{ left: finalX, top: thirdTop }} />
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+      {scroller.moreLeft && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute left-0 top-0 bottom-2 w-16 bg-gradient-to-r from-turf-surface to-transparent"
+        />
+      )}
+      {scroller.more && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute right-0 top-0 bottom-2 w-16 bg-gradient-to-l from-turf-surface to-transparent"
+        />
+      )}
+    </div>
+  )
+}
+
+/** The poster's title band: the cup's name, and the sponsor in the corner. */
+function PosterHeader({ title }: { title?: string }) {
+  return (
+    <div className="relative flex flex-col items-center gap-4 sm:block pb-6">
+      <div className="text-center">
+        <p className="text-[11px] font-bold uppercase tracking-[0.35em] text-gold pl-[0.35em]">Bracket</p>
+        {title && (
+          <h4 className="font-display text-4xl sm:text-5xl font-black uppercase leading-none text-chalk mt-1.5">{title}</h4>
+        )}
+      </div>
+      <div className="sm:absolute sm:right-0 sm:top-0">
+        <Sponsor />
+      </div>
+    </div>
+  )
+}
+
 // ── Main view ─────────────────────────────────────────────────────────────────
 
 interface BracketViewProps {
   matches: Match[]
   /** Makes each match clickable, e.g. to edit it */
   onSelect?: (match: Match) => void
+  /** The cup's name, shown as the bracket's title */
+  title?: string
 }
 
-export default function BracketView({ matches, onSelect }: BracketViewProps) {
+export default function BracketView({ matches, onSelect, title }: BracketViewProps) {
   const byPhase = new Map<string, Match[]>()
   matches.forEach(m => byPhase.set(m.matchPhase, [...(byPhase.get(m.matchPhase) ?? []), m]))
 
@@ -376,6 +657,9 @@ export default function BracketView({ matches, onSelect }: BracketViewProps) {
   const groups = byPhase.get('GROUP_STAGE') ?? []
   const thirdPlace = byPhase.get('THIRD_PLACE')?.[0]
   const doubleElim = lower.length > 0 || main.some(r => r.phase.startsWith('UPPER_BRACKET'))
+  // A single bracket ending in one final is drawn as a two-sided poster
+  const lastRound = main[main.length - 1]
+  const twoSided = !doubleElim && main.length >= 2 && lastRound?.phase === 'FINALS' && lastRound.matches.length === 1
 
   if (matches.length === 0) return <Empty title="No matches yet" />
 
@@ -396,7 +680,12 @@ export default function BracketView({ matches, onSelect }: BracketViewProps) {
         </section>
       )}
 
-      {main.length > 0 && (
+      {twoSided ? (
+        <section className="rounded-2xl border border-turf-line bg-turf-surface bg-[radial-gradient(ellipse_at_50%_35%,rgba(242,193,78,0.07),transparent_60%),linear-gradient(180deg,rgba(255,255,255,0.015),transparent)] px-4 sm:px-6 pt-6 pb-4">
+          <PosterHeader title={title} />
+          <TwoSidedTrack rounds={main} onSelect={onSelect} thirdPlace={thirdPlace} />
+        </section>
+      ) : main.length > 0 && (
         <Track
           title={doubleElim ? 'Upper bracket' : groups.length ? 'Knockout' : undefined}
           note={doubleElim ? 'Winners stay here; the final is the grand final.' : undefined}

@@ -212,9 +212,9 @@ function playBracket(
 }
 
 /**
- * Gives the first entrants byes and spreads them so a bye player meets the
- * winner of a played tie next, not another bye player:
- * [b1, b2, p1, p2, p3, p4] → [b1, –, p1, p2, b2, –, p3, p4].
+ * Gives the first entrants byes and spreads the played ties evenly through
+ * the bracket (both halves, then each quarter, ...), as a seeded draw does,
+ * so a bye player meets the winner of a played tie next where possible.
  */
 function interleaveByes(slots: Array<string | null>): Array<string | null> {
   const players = slots.filter((s): s is string => s !== null);
@@ -224,14 +224,23 @@ function interleaveByes(slots: Array<string | null>): Array<string | null> {
   for (let i = byes; i < players.length; i += 2)
     ties.push([players[i]!, players[i + 1] ?? null]);
 
+  const pairs = slots.length / 2;
+  const tieSlots = new Set(spreadOrder(pairs).slice(0, ties.length));
   const out: Array<string | null> = [];
-  while (byePairs.length || ties.length) {
-    const bye = byePairs.shift();
-    if (bye) out.push(...bye);
-    const tie = ties.shift();
-    if (tie) out.push(...tie);
+  for (let pos = 0; pos < pairs; pos++) {
+    out.push(...(tieSlots.has(pos) ? ties.shift()! : byePairs.shift()!));
   }
   return out;
+}
+
+/** 0..n-1 (n a power of two) in bit-reversed order: 8 → 0 4 2 6 1 5 3 7. */
+function spreadOrder(n: number): number[] {
+  const bits = Math.log2(n);
+  return Array.from({ length: n }, (_, i) => {
+    let r = 0;
+    for (let b = 0; b < bits; b++) if (i & (1 << b)) r |= 1 << (bits - 1 - b);
+    return r;
+  });
 }
 
 /**

@@ -289,10 +289,12 @@ function AddDuoForm({
 // ── Match view tabs (bracket + list) ────────────────────────────────────────
 
 function MatchViewTabs({
+  title,
   matches,
   matchesByPhase,
   onEdit,
 }: {
+  title: string
   matches: Championship['matches']
   matchesByPhase: Record<string, Championship['matches']>
   onEdit: (match: Match) => void
@@ -326,7 +328,7 @@ function MatchViewTabs({
         {matches.length === 0 ? (
           <Empty title="No matches yet" hint="Use “Add match” to record the first result." />
         ) : tab === 'bracket' ? (
-          <BracketView matches={matches} onSelect={onEdit} />
+          <BracketView matches={matches} onSelect={onEdit} title={title} />
         ) : (
           <div className="space-y-6">
             {Object.entries(matchesByPhase).map(([phase, phaseMatches]) => (
@@ -631,7 +633,9 @@ function ChampionshipDetail({
       {matchesSlot &&
         createPortal(
           <section className="panel overflow-hidden">
-            <MatchViewTabs matches={c.matches} matchesByPhase={matchesByPhase} onEdit={setEditMatch} />
+            <MatchViewTabs
+              title={`${fmtCupFull(c.title)} ${new Date(c.createdAtIso).getUTCFullYear()}`}
+              matches={c.matches} matchesByPhase={matchesByPhase} onEdit={setEditMatch} />
           </section>,
           matchesSlot,
         )}

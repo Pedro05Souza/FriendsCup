@@ -239,6 +239,21 @@ describe('playCup', () => {
     }
   });
 
+  it('spreads byes across both halves of the bracket', () => {
+    const ten = [...six, 'p7', 'p8', 'p9', 'p10'];
+    const cup = playCup(model, ten, 'KNOCKOUT', 3);
+    // 10 players → 16 slots: 2 round-of-16 ties, one in each half
+    const r16 = cup.knockout.filter((m) => m.phase === 'ROUND_OF_16');
+    expect(r16).toHaveLength(2);
+    const quarters = cup.knockout.filter((m) => m.phase === 'QUARTER_FINALS');
+    const half = (m: (typeof quarters)[number]): number =>
+      quarters.indexOf(m) < 2 ? 0 : 1;
+    const fedHalves = r16.map((t) =>
+      half(quarters.find((q) => [q.home, q.away].includes(t.winnerId!))!),
+    );
+    expect(new Set(fedHalves).size).toBe(2);
+  });
+
   it('gives the same cup for the same seed', () => {
     expect(playCup(model, six, 'KNOCKOUT', 77)).toEqual(
       playCup(model, six, 'KNOCKOUT', 77),
