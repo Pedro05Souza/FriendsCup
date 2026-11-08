@@ -49,6 +49,7 @@ export class ChampionshipDtoAssembler {
       title: championshipEntity.title,
       createdAtIso:
         championshipEntity.createdAt.toISO() ?? new Date().toISOString(),
+      isDuo: championshipEntity.isDuo,
       championshipWinner: this.getChampionshipWinner(
         championshipEntity.winnerId,
         players,

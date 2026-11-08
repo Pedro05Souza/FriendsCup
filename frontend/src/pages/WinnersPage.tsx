@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { championshipsApi } from '../api/championships'
 import type { ChampionshipWinnerEntry } from '../types'
-import { medal } from '../lib/utils'
-import Badge from '../components/ui/Badge'
-import Spinner from '../components/ui/Spinner'
+import { cn, fmtCup } from '../lib/utils'
+import PageHeader from '../components/ui/PageHeader'
+import RankNumber from '../components/ui/RankNumber'
+import PlayerLink from '../components/ui/PlayerLink'
+import { Empty, ErrorNote, Loading } from '../components/ui/States'
 
 export default function WinnersPage() {
   const { data, isLoading, error } = useQuery({
@@ -13,52 +15,52 @@ export default function WinnersPage() {
 
   return (
     <>
-      <div className="mb-6">
-        <h1 className="text-xl font-bold text-zinc-100">Hall of Fame</h1>
-        <p className="text-sm text-zinc-500 mt-0.5">All-time championship winners</p>
-      </div>
+      <PageHeader title="Hall of fame" description="Everyone who has lifted a cup, ordered by titles won." />
 
-      {isLoading && (
-        <div className="flex justify-center py-16">
-          <Spinner />
-        </div>
-      )}
-
-      {error && (
-        <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-4">
-          {(error as Error).message}
-        </p>
-      )}
+      {isLoading && <Loading />}
+      {error && <ErrorNote error={error} />}
 
       {data && (
-        <div className="space-y-3">
+        <div className="panel overflow-hidden">
           {data.length === 0 && (
-            <div className="text-center py-16 text-zinc-600 text-sm">No winners yet</div>
+            <Empty title="No champions yet" hint="Finish a championship and its winner shows up here." />
           )}
-          {(data as ChampionshipWinnerEntry[]).map((w, i) => {
-            const total = w.championships.reduce((s, c) => s + c.timesWon, 0)
-            return (
-              <div
-                key={w.playerId}
-                className="bg-gh-surface border border-gh-border rounded-lg p-4 flex items-center gap-4"
-              >
-                <span className="text-2xl w-9 text-center shrink-0">{medal(i)}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="font-bold text-zinc-100">{w.playerName}</span>
-                    <Badge variant="yellow">{total} title{total !== 1 ? 's' : ''}</Badge>
+          <ol className="divide-y divide-turf-line">
+            {(data as ChampionshipWinnerEntry[]).map((w, i) => {
+              const total = w.championships.reduce((s, c) => s + c.timesWon, 0)
+              return (
+                <li
+                  key={w.playerId}
+                  className={cn(
+                    'grid grid-cols-[3rem,1fr,auto] items-center gap-4 px-5 sm:px-6 py-5',
+                    i === 0 && 'bg-gold/[0.05]',
+                  )}
+                >
+                  <RankNumber rank={i + 1} className="text-4xl" />
+                  <div className="min-w-0">
+                    <p className="font-display text-3xl font-extrabold leading-none text-chalk truncate">
+                      <PlayerLink id={w.playerId} name={w.playerName} />
+                    </p>
+                    <div className="flex flex-wrap gap-1.5 mt-2.5">
+                      {w.championships.map(c => (
+                        <span
+                          key={c.championshipName}
+                          className="inline-flex items-center gap-1.5 text-xs font-medium text-chalk-muted bg-turf-raised border border-turf-line rounded-md px-2 py-1"
+                        >
+                          {fmtCup(c.championshipName)}
+                          <span className="font-bold text-gold tabular-nums">×{c.timesWon}</span>
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {w.championships.map(c => (
-                      <Badge key={c.championshipName} variant="green">
-                        {c.championshipName} ×{c.timesWon}
-                      </Badge>
-                    ))}
+                  <div className="text-right">
+                    <p className="font-display text-5xl font-black leading-none text-gold tabular-nums">{total}</p>
+                    <p className="text-xs text-chalk-muted mt-1">{total === 1 ? 'title' : 'titles'}</p>
                   </div>
-                </div>
-              </div>
-            )
-          })}
+                </li>
+              )
+            })}
+          </ol>
         </div>
       )}
     </>

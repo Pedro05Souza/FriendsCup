@@ -5,6 +5,10 @@ import type {
   ChampionshipBrief,
   ChampionshipWinnerEntry,
   RecapData,
+  CupFormat,
+  CupSimulation,
+  PlayedCup,
+  ChampionshipRatingChanges,
 } from '../types'
 
 export interface CreateChampionshipData {
@@ -45,6 +49,24 @@ export const championshipsApi = {
 
   createMatch: (champId: string, data: CreateMatchData) =>
     apiFetch<void>('POST', `/championships/${champId}/matches`, data),
+
+  updateMatch: (champId: string, matchId: string, data: CreateMatchData) =>
+    apiFetch<void>('PUT', `/championships/${champId}/matches/${matchId}`, data),
+
+  deleteMatch: (champId: string, matchId: string) =>
+    apiFetch<void>('DELETE', `/championships/${champId}/matches/${matchId}`),
+
+  ratingChanges: (champId: string) =>
+    apiFetch<ChampionshipRatingChanges>('GET', `/championships/${champId}/rating-changes`),
+
+  saveRatings: (champId: string) =>
+    apiFetch<{ saved: number }>('POST', `/championships/${champId}/rating-snapshots`),
+
+  simulate: (data: { playerIds: string[]; format: CupFormat; simulations?: number }) =>
+    apiFetch<CupSimulation>('POST', '/championships/simulations', data),
+
+  playCup: (data: { playerIds: string[]; format: CupFormat; seed?: number }) =>
+    apiFetch<PlayedCup>('POST', '/championships/simulations/single', data),
 
   winners: () =>
     apiFetch<ChampionshipWinnerEntry[]>('GET', '/championships/winners'),

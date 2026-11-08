@@ -20,6 +20,12 @@ import { GetAllTimeRecordsUsecase } from './get-all-time-records.usecase';
 import { GetRivalriesUsecase } from './get-rivalries.usecase';
 import { GetPlayerFormUsecase } from './get-player-form.usecase';
 import { GetH2HMatchDetailUsecase } from './get-h2h-match-detail.usecase';
+import { GetPlayerSummaryUsecase } from './get-player-summary.usecase';
+import { UpdateMatchUsecase } from './update-match.usecase';
+import { DeleteMatchUsecase } from './delete-match.usecase';
+import { GroupStandingsService } from './group-standings.service';
+import { PredictionsUsecase } from './predictions.usecase';
+import { RatingHistoryUsecase } from './rating-history.usecase';
 
 @Module({
   controllers: [],
@@ -45,6 +51,12 @@ import { GetH2HMatchDetailUsecase } from './get-h2h-match-detail.usecase';
     GetRivalriesUsecase,
     GetPlayerFormUsecase,
     GetH2HMatchDetailUsecase,
+    GetPlayerSummaryUsecase,
+    UpdateMatchUsecase,
+    DeleteMatchUsecase,
+    GroupStandingsService,
+    PredictionsUsecase,
+    RatingHistoryUsecase,
   ],
   exports: [
     CreatePlayerUsecase,
@@ -65,6 +77,11 @@ import { GetH2HMatchDetailUsecase } from './get-h2h-match-detail.usecase';
     GetRivalriesUsecase,
     GetPlayerFormUsecase,
     GetH2HMatchDetailUsecase,
+    GetPlayerSummaryUsecase,
+    UpdateMatchUsecase,
+    DeleteMatchUsecase,
+    PredictionsUsecase,
+    RatingHistoryUsecase,
   ],
   imports: [RepositoriesModule],
 })

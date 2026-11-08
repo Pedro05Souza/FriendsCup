@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Post,
+  Put,
+} from '@nestjs/common';
 import { AllTimeRecordsDto } from 'src/application/dtos/all-time-records.dto';
 import { ChampionshipBriefDto } from 'src/application/dtos/championship-brief.dto';
 import { ChampionshipWinnersResponseDto } from 'src/application/dtos/championship-winners.dto';
@@ -9,6 +18,18 @@ import { CreateMatchDto } from 'src/application/dtos/create-match.dto';
 import { CreateChampionshipUsecase } from 'src/application/usecases/create-championship.usecase';
 import { CreateDuoUsecase } from 'src/application/usecases/create-duo.usecase';
 import { CreateMatchUsecase } from 'src/application/usecases/create-match.usecase';
+import { UpdateMatchDto } from 'src/application/dtos/update-match.dto';
+import { UpdateMatchUsecase } from 'src/application/usecases/update-match.usecase';
+import { DeleteMatchUsecase } from 'src/application/usecases/delete-match.usecase';
+import { PredictionsUsecase } from 'src/application/usecases/predictions.usecase';
+import { RatingHistoryUsecase } from 'src/application/usecases/rating-history.usecase';
+import { ChampionshipRatingChangesDto } from 'src/application/dtos/rating-history.dto';
+import {
+  CupSimulationDto,
+  PlayCupDto,
+  PlayedCupDto,
+  SimulateCupDto,
+} from 'src/application/dtos/prediction.dto';
 import { GetChampionshipWinnersUsecase } from 'src/application/usecases/get-championship-winners.usecase';
 import { GetChampionshipUsecase } from 'src/application/usecases/get-championship.usecase';
 import { ListChampionshipsUsecase } from 'src/application/usecases/list-championships.usecase';
@@ -29,7 +50,39 @@ export class ChampionshipController {
     private readonly _recapUsecase: RecapUsecase,
     private readonly _listChampionshipsUsecase: ListChampionshipsUsecase,
     private readonly _getAllTimeRecordsUsecase: GetAllTimeRecordsUsecase,
+    private readonly _updateMatchUsecase: UpdateMatchUsecase,
+    private readonly _deleteMatchUsecase: DeleteMatchUsecase,
+    private readonly _predictionsUsecase: PredictionsUsecase,
+    private readonly _ratingHistoryUsecase: RatingHistoryUsecase,
   ) {}
+
+  @Get('/:championshipId/rating-changes')
+  async getRatingChanges(
+    @Param('championshipId') championshipId: string,
+  ): Promise<ChampionshipRatingChangesDto> {
+    return this._ratingHistoryUsecase.getChampionshipChanges(championshipId);
+  }
+
+  @Post('/:championshipId/rating-snapshots')
+  async saveRatings(
+    @Param('championshipId') championshipId: string,
+  ): Promise<{ saved: number }> {
+    return this._ratingHistoryUsecase.saveChampionshipRatings(championshipId);
+  }
+
+  @Post('/simulations/single')
+  @HttpCode(200)
+  async playCup(@Body() playCupDto: PlayCupDto): Promise<PlayedCupDto> {
+    return this._predictionsUsecase.playCup(playCupDto);
+  }
+
+  @Post('/simulations')
+  @HttpCode(200)
+  async simulateCup(
+    @Body() simulateCupDto: SimulateCupDto,
+  ): Promise<CupSimulationDto> {
+    return this._predictionsUsecase.simulateCup(simulateCupDto);
+  }
 
   @Get()
   async listChampionships(): Promise<ChampionshipBriefDto[]> {
@@ -76,6 +129,28 @@ export class ChampionshipController {
     @Body() createMatchDto: CreateMatchDto,
   ): Promise<void> {
     return this._createMatchUsecase.createMatch(championshipId, createMatchDto);
+  }
+
+  @Put('/:championshipId/matches/:matchId')
+  async updateMatch(
+    @Param('championshipId') championshipId: string,
+    @Param('matchId') matchId: string,
+    @Body() updateMatchDto: UpdateMatchDto,
+  ): Promise<void> {
+    return this._updateMatchUsecase.updateMatch(
+      championshipId,
+      matchId,
+      updateMatchDto,
+    );
+  }
+
+  @Delete('/:championshipId/matches/:matchId')
+  @HttpCode(204)
+  async deleteMatch(
+    @Param('championshipId') championshipId: string,
+    @Param('matchId') matchId: string,
+  ): Promise<void> {
+    return this._deleteMatchUsecase.deleteMatch(championshipId, matchId);
   }
 
   @Get('/recap/:year')

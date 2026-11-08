@@ -23,6 +23,7 @@ model Player {
     matchWinner          Match[]            @relation("MatchWinner")
     matchParticipants    MatchParticipant[] @relation("MatchParticipantPlayer")
     championshipWinner   Championship[]     @relation("ChampionshipWinner")
+    ratingSnapshots      PlayerRatingSnapshot[]
 
     @@map("player")
 }
@@ -40,6 +41,7 @@ model Championship {
     winnerId    String?             @map("winner_id")
     duoWinner   Duo?                @relation("ChampionshipDuoWinner", fields: [duoWinnerId], references: [id])
     duoWinnerId String?             @map("duo_winner_id")
+    ratingSnapshots PlayerRatingSnapshot[]
 
     @@map("championship")
 }
@@ -112,4 +114,28 @@ model Duo {
 
     @@unique([player1Id, player2Id, championshipId])
     @@map("duo")
+}
+
+/// A player's rating as it stood after a cup.
+/// Ratings from the old 1-5 system keep their original value in raw_overall
+/// and a 0-100 conversion in overall; attributes only exist from the 0-100 system on.
+model PlayerRatingSnapshot {
+    id             String        @id @default(uuid())
+    player         Player        @relation(fields: [playerId], references: [id], onDelete: Cascade)
+    playerId       String        @map("player_id")
+    championship   Championship? @relation(fields: [championshipId], references: [id], onDelete: SetNull)
+    championshipId String?       @map("championship_id")
+    takenAt        DateTime      @map("taken_at")
+    /// "LEGACY_5" (old 1-5 overall) or "POINTS_100"
+    scale          String
+    rawOverall     Float         @map("raw_overall")
+    overall        Int
+    attack         Int?
+    defense        Int?
+    intelligence   Int?
+    mentality      Int?
+    createdAt      DateTime      @default(now()) @map("created_at")
+
+    @@unique([playerId, championshipId])
+    @@map("player_rating_snapshot")
 }

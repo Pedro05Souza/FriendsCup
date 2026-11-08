@@ -5,6 +5,11 @@ import { RivalryDto } from 'src/application/dtos/rivalry.dto';
 import { GetH2HMatchDetailUsecase } from 'src/application/usecases/get-h2h-match-detail.usecase';
 import { GetMatchHistoryForPlayersUsecase } from 'src/application/usecases/get-match-history-for-players.usecase';
 import { GetRivalriesUsecase } from 'src/application/usecases/get-rivalries.usecase';
+import { PredictionsUsecase } from 'src/application/usecases/predictions.usecase';
+import {
+  MatchPredictionDto,
+  PowerRatingsDto,
+} from 'src/application/dtos/prediction.dto';
 
 @Controller('/matches')
 export class MatchController {
@@ -12,7 +17,21 @@ export class MatchController {
     private readonly _getMatchHistoryForPlayersUsecase: GetMatchHistoryForPlayersUsecase,
     private readonly _getRivalriesUsecase: GetRivalriesUsecase,
     private readonly _getH2HMatchDetailUsecase: GetH2HMatchDetailUsecase,
+    private readonly _predictionsUsecase: PredictionsUsecase,
   ) {}
+
+  @Get('/power-ratings')
+  async getPowerRatings(): Promise<PowerRatingsDto> {
+    return this._predictionsUsecase.powerRatings();
+  }
+
+  @Get('/predictions/:playerId/:opponentId')
+  async getPrediction(
+    @Param('playerId') playerId: string,
+    @Param('opponentId') opponentId: string,
+  ): Promise<MatchPredictionDto> {
+    return this._predictionsUsecase.predictMatch(playerId, opponentId);
+  }
 
   @Get('/rivalries')
   async getRivalries(): Promise<RivalryDto[]> {

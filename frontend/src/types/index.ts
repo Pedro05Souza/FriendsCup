@@ -225,3 +225,175 @@ export interface RecapData {
   titlesPodium: RecapTitles[]
   runnerUpPodium: RecapRunnerUp[]
 }
+
+// ── Player summary (GET /players/:id/summary) ──
+
+export type CupFinish =
+  | 'CHAMPION'
+  | 'RUNNER_UP'
+  | 'FINALIST'
+  | 'THIRD'
+  | 'FOURTH'
+  | 'ELIMINATED'
+  | 'NOT_STARTED'
+
+export interface PlayerSummaryCup {
+  championshipId: string
+  title: string
+  createdAtIso: string
+  isDuo: boolean
+  matchesPlayed: number
+  goals: number
+  finish: CupFinish
+  /** Deepest phase reached, when finish is ELIMINATED */
+  phase: string | null
+  finishRank: number
+  playedFinal: boolean
+  wonFinal: boolean
+  goldenBoot: boolean
+}
+
+export interface PlayerSummaryOpponent {
+  opponentId: string
+  opponentName: string
+  matchesPlayed: number
+  wins: number
+  draws: number
+  losses: number
+  goalsFor: number
+  goalsAgainst: number
+}
+
+export interface PlayerSummary {
+  playerId: string
+  playerName: string
+  cupsEntered: number
+  finalsPlayed: number
+  finalsWon: number
+  goldenBoots: number
+  bestFinish: PlayerSummaryCup | null
+  cups: PlayerSummaryCup[]
+  opponents: PlayerSummaryOpponent[]
+}
+
+// ── Predictions (Poisson model on 1v1 results) ──
+
+export interface PredictedSide {
+  playerId: string
+  playerName: string
+  /** 1v1 matches behind this player's ratings; few means close to average */
+  matchesInModel: number
+  expectedGoals: number
+  winProbability: number
+}
+
+export interface MatchPrediction {
+  player: PredictedSide
+  opponent: PredictedSide
+  drawProbability: number
+  likelyScores: { player: number; opponent: number; probability: number }[]
+  /** P(player scores i, opponent scores j), i and j from 0 to 6 */
+  scoreMatrix: number[][]
+}
+
+export interface PowerRating {
+  playerId: string
+  playerName: string
+  matchesInModel: number
+  attack: number
+  defence: number
+  strength: number
+}
+
+export interface PowerRatings {
+  matchesUsed: number
+  halfLifeYears: number
+  ratings: PowerRating[]
+}
+
+export type CupFormat = 'KNOCKOUT' | 'GROUPS_AND_KNOCKOUT'
+
+export interface CupSimulation {
+  format: CupFormat
+  simulations: number
+  seed: number
+  odds: {
+    playerId: string
+    playerName: string
+    matchesInModel: number
+    title: number
+    final: number
+    semifinal: number
+    knockout: number
+  }[]
+}
+
+export interface PlayedGroupRow {
+  playerId: string
+  playerName: string
+  played: number
+  won: number
+  drawn: number
+  lost: number
+  goalsFor: number
+  goalsAgainst: number
+  points: number
+  qualified: boolean
+}
+
+/** One whole cup played by the simulator, match by match. */
+export interface PlayedCup {
+  format: CupFormat
+  seed: number
+  championId: string
+  championName: string
+  runnerUpId: string | null
+  runnerUpName: string | null
+  groups: { name: string; table: PlayedGroupRow[]; matches: Match[] }[]
+  knockout: Match[]
+}
+
+// ── Rating history (snapshots after each cup) ──
+
+export type RatingScale = 'LEGACY_5' | 'POINTS_100'
+
+export interface RatingPoint {
+  championshipId: string | null
+  championshipTitle: string | null
+  takenAtIso: string
+  scale: RatingScale
+  /** As originally given: 1-5 for LEGACY_5, 0-100 otherwise */
+  rawOverall: number
+  /** Always 0-100 (converted for LEGACY_5) */
+  overall: number
+  attack: number | null
+  defense: number | null
+  intelligence: number | null
+  mentality: number | null
+}
+
+export interface RatingHistory {
+  playerId: string
+  playerName: string
+  snapshots: RatingPoint[]
+  current: { overall: number; attack: number; defense: number; intelligence: number; mentality: number }
+}
+
+export interface RatingChange {
+  playerId: string
+  playerName: string
+  before: RatingPoint
+  after: RatingPoint
+  delta: number
+  rawDelta: number | null
+}
+
+export interface ChampionshipRatingChanges {
+  championshipId: string
+  saved: boolean
+  canSave: boolean
+  changes: RatingChange[]
+  /** Each player's rating going into the cup; null if they had none yet. Empty for duo cups. */
+  enteringRatings: { playerId: string; rating: RatingPoint | null }[]
+  firstRatings: { playerId: string; playerName: string; after: RatingPoint }[]
+}
