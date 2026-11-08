@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { ArrowDownRight, ArrowUpRight, Save } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, ChevronDown, Save } from 'lucide-react'
 import { championshipsApi } from '../api/championships'
 import type { RatingChange, RatingPoint } from '../types'
 import { cn } from '../lib/utils'
@@ -20,6 +20,64 @@ function shownDelta(c: RatingChange) {
   const d = c.rawDelta ?? c.delta
   const text = c.after.scale === 'LEGACY_5' && c.rawDelta !== null ? Math.abs(d).toFixed(1) : String(Math.abs(d))
   return d > 0 ? `+${text}` : d < 0 ? `−${text}` : '0'
+}
+
+const ATTRIBUTES = [
+  ['attack', 'Attack'],
+  ['defense', 'Defense'],
+  ['intelligence', 'Intelligence'],
+  ['mentality', 'Mentality'],
+] as const
+
+function signed(d: number) {
+  return d > 0 ? `+${d}` : d < 0 ? `−${Math.abs(d)}` : '0'
+}
+
+/** The four attribute ratings, before and after the cup, with each change. */
+function AttributeChanges({ before, after }: { before: RatingPoint | null; after: RatingPoint }) {
+  if (after.attack === null) {
+    return <p className="text-xs text-chalk-faint">This rating has no attribute breakdown (old 1–5 system).</p>
+  }
+  const hadAttributes = before !== null && before.attack !== null
+  return (
+    <div>
+      <dl className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {ATTRIBUTES.map(([key, label]) => {
+          const now = after[key]!
+          const was = hadAttributes ? before![key]! : null
+          const d = was === null ? null : now - was
+          return (
+            <div key={key} className="rounded-lg border border-turf-line bg-turf-bg/50 px-3 py-2">
+              <dt className="text-[11px] font-semibold text-chalk-faint">{label}</dt>
+              <dd className="flex items-baseline justify-between gap-2 mt-0.5">
+                <span className="text-sm tabular-nums text-chalk-muted">
+                  {was !== null && <>{was} → </>}
+                  <span className="text-chalk font-semibold">{now}</span>
+                </span>
+                {d !== null && (
+                  <span
+                    className={cn(
+                      'font-display text-lg font-extrabold tabular-nums leading-none',
+                      d > 0 ? 'text-win' : d < 0 ? 'text-loss' : 'text-chalk-faint',
+                    )}
+                  >
+                    {signed(d)}
+                  </span>
+                )}
+              </dd>
+            </div>
+          )
+        })}
+      </dl>
+      {!hadAttributes && (
+        <p className="text-xs text-chalk-faint mt-2">
+          {before === null
+            ? 'First rating, so there is nothing to compare with.'
+            : "The rating before this cup was on the old 1–5 scale, which had no attributes."}
+        </p>
+      )}
+    </div>
+  )
 }
 
 function Callout({ change, kind }: { change: RatingChange; kind: 'rise' | 'fall' }) {
@@ -47,6 +105,14 @@ function Callout({ change, kind }: { change: RatingChange; kind: 'rise' | 'fall'
 export default function RatingChanges({ championshipId }: { championshipId: string }) {
   const qc = useQueryClient()
   const [confirmReplace, setConfirmReplace] = useState(false)
+  const [open, setOpen] = useState<Set<string>>(new Set())
+  const toggle = (id: string) =>
+    setOpen(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
   const { data, isLoading, error } = useQuery({
     queryKey: ['rating-changes', championshipId],
     queryFn: () => championshipsApi.ratingChanges(championshipId),
@@ -78,6 +144,7 @@ export default function RatingChanges({ championshipId }: { championshipId: stri
       <div className="flex flex-wrap items-start justify-between gap-3 px-5 sm:px-6 pt-5 pb-4">
         <div>
           <h3 className="panel-title">Ratings after this cup</h3>
+
           {data.canSave && (
             <p className="text-sm text-chalk-faint mt-1.5 max-w-md">
               Update players' ratings first, then save them here so this cup keeps a record of them.
@@ -107,37 +174,74 @@ export default function RatingChanges({ championshipId }: { championshipId: stri
           )}
 
           {data.changes.length > 0 && (
+            <p className="text-xs text-chalk-faint -mb-2">Select a player to see how each attribute changed.</p>
+          )}
+          {data.changes.length > 0 && (
             <ol className="divide-y divide-turf-line/60 border-y border-turf-line">
-              {data.changes.map(c => (
-                <li key={c.playerId} className="grid grid-cols-[1fr,auto,3.5rem] items-center gap-3 py-2">
-                  <PlayerLink id={c.playerId} name={c.playerName} className="font-medium text-chalk truncate" />
-                  <span className="text-sm tabular-nums text-chalk-muted">
-                    {shown(c.before)} → <span className="text-chalk">{shown(c.after)}</span>
-                  </span>
-                  <span
-                    className={cn(
-                      'text-right font-display text-lg font-extrabold tabular-nums',
-                      c.delta > 0 ? 'text-win' : c.delta < 0 ? 'text-loss' : 'text-chalk-faint',
+              {data.changes.map(c => {
+                const isOpen = open.has(c.playerId)
+                return (
+                  <li key={c.playerId}>
+                    <button
+                      type="button"
+                      onClick={() => toggle(c.playerId)}
+                      aria-expanded={isOpen}
+                      className="w-full grid grid-cols-[1fr,auto,3.5rem,1rem] items-center gap-3 py-2 text-left hover:bg-chalk/[0.03] transition-colors"
+                    >
+                      <span className="font-medium text-chalk truncate">{c.playerName}</span>
+                      <span className="text-sm tabular-nums text-chalk-muted">
+                        {shown(c.before)} → <span className="text-chalk">{shown(c.after)}</span>
+                      </span>
+                      <span
+                        className={cn(
+                          'text-right font-display text-lg font-extrabold tabular-nums',
+                          c.delta > 0 ? 'text-win' : c.delta < 0 ? 'text-loss' : 'text-chalk-faint',
+                        )}
+                      >
+                        {shownDelta(c)}
+                      </span>
+                      <ChevronDown className={cn('w-4 h-4 text-chalk-faint transition-transform', isOpen && 'rotate-180')} />
+                    </button>
+                    {isOpen && (
+                      <div className="pb-3">
+                        <AttributeChanges before={c.before} after={c.after} />
+                        <PlayerLink id={c.playerId} name="See player page" className="inline-block mt-2 text-xs text-chalk-faint hover:text-chalk" />
+                      </div>
                     )}
-                  >
-                    {shownDelta(c)}
-                  </span>
-                </li>
-              ))}
+                  </li>
+                )
+              })}
             </ol>
           )}
 
           {data.firstRatings.length > 0 && (
-            <p className="text-sm text-chalk-muted">
-              First rated after this cup:{' '}
-              {data.firstRatings.map((f, i) => (
-                <span key={f.playerId}>
-                  {i > 0 && ', '}
-                  <PlayerLink id={f.playerId} name={f.playerName} className="text-chalk" />{' '}
-                  <span className="tabular-nums text-chalk-faint">{shown(f.after)}</span>
-                </span>
-              ))}
-            </p>
+            <div>
+              <p className="text-sm text-chalk-muted">
+                First rated after this cup:{' '}
+                {data.firstRatings.map((f, i) => (
+                  <span key={f.playerId}>
+                    {i > 0 && ', '}
+                    <button
+                      type="button"
+                      onClick={() => toggle(f.playerId)}
+                      aria-expanded={open.has(f.playerId)}
+                      className="text-chalk hover:underline underline-offset-2"
+                    >
+                      {f.playerName}
+                    </button>{' '}
+                    <span className="tabular-nums text-chalk-faint">{shown(f.after)}</span>
+                  </span>
+                ))}
+              </p>
+              {data.firstRatings
+                .filter(f => open.has(f.playerId))
+                .map(f => (
+                  <div key={f.playerId} className="mt-3">
+                    <p className="text-xs font-semibold text-chalk-muted mb-1.5">{f.playerName}</p>
+                    <AttributeChanges before={null} after={f.after} />
+                  </div>
+                ))}
+            </div>
           )}
 
           {mixedScales && (
