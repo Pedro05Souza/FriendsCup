@@ -81,7 +81,7 @@ function GroupCard({ group }: { group: PlayedCup['groups'][number] }) {
 }
 
 function ChampionCard({ cup }: { cup: PlayedCup }) {
-  const final = cup.knockout.at(-1)
+  const final = cup.knockout[cup.knockout.length - 1]
   const championFirst = final?.participants[0]?.id === cup.championId
   const wentToPens = final?.participants[0]?.penaltyShootoutGoals !== undefined
 
